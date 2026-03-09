@@ -10,6 +10,7 @@ function HomePage() {
     const nevagate = useNavigate();
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL;
     const USER_API_URL = process.env.VITE_USER_API_URL;
+    const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL;
     const [userData, setUserData] = useState<{ username: string; email: string; user_id: number; created_at: string, user_icon: string }>({
         username: "",
         email: "",
@@ -59,6 +60,17 @@ function HomePage() {
                     created_at: fetchedUserData.create_date.toString(),
                     user_icon: image_url
                 })
+                const fecth_problem_set_response = await fetch(`${PROBLEM_SET_API_URL}/getProblemSets`, {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({user_id: session_user_id}),
+                })
+                const fetched_problem_sets_json = await fecth_problem_set_response.json();
+                const fetched_problem_sets_data = fetched_problem_sets_json.problem_sets;
+                setProblemSets(fetched_problem_sets_data);
             }
         }
         checkUserValidation();
@@ -69,6 +81,11 @@ function HomePage() {
     return (
         <div className="HomePageContainer">
             <NavBar user_data={userData}/>
+            {
+                problemSets.map(problem_set => (
+                    <ProblemSetCard problem_set={problem_set}/>
+                ))
+            }
         </div>
     )
 }
