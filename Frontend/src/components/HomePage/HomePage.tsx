@@ -20,8 +20,8 @@ function HomePage() {
     });
     const [problemSets, setProblemSets] = useState([
         {
-        id: -1, title: "", description: "", 
-        counts: -1, created_by: -1, created_at: "", 
+        problem_set_id: -1, problem_set_title: "", problem_set_description: "", 
+        problem_counts: -1, created_by: -1, created_at: "", 
         last_update_at: ""
         }
     ])
@@ -81,11 +81,16 @@ function HomePage() {
     return (
         <div className="HomePageContainer">
             <NavBar user_data={userData}/>
-            {
-                problemSets.map(problem_set => (
-                    <ProblemSetCard problem_set={problem_set}/>
-                ))
-            }
+            <div className="problemSetCardsContainer">
+                {
+                    problemSets.map(problem_set => (
+                        <div key={problem_set.problem_set_id}>
+                            <ProblemSetCard problem_set={problem_set}/>
+                        </div>
+                    ))
+                }
+            </div>
+            
         </div>
     )
 }

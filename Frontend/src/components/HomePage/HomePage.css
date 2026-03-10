@@ -1,8 +1,15 @@
 .HomePageContainer {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
     min-height: 100vh;
     background-color: #38343B;
+}
+
+.problemSetCardsContainer {
+    padding-top: 15px;
+    position: relative;
+    display:grid;
+    grid-template-columns: 320px 100px;
+    grid-row: auto auto;
+    grid-column-gap: 15px;
+    grid-row-gap: 10px;
+    margin-left: 20px;
 }

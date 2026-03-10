@@ -14,6 +14,7 @@ const NavBar: React.FC<NavBarProps> = ({user_data}) => {
     const [isDisplay, setIsDisplay] = useState<boolean>(false);
     const handleProfileClick = async (event: React.MouseEvent) => {
         event.stopPropagation();
+        console.log('Clicked')
         setIsDisplay(prev => !prev);
         // const testInsertImage = await fetch(`${UTILS_API_URL}/InsertImage`, {
         //     method: "POST",

@@ -1,0 +1,26 @@
+.ProblemSetCards {
+    background-color: #242425;
+    opacity: 0.7;
+    border-radius: 10px;
+    width: 318px;
+    height: 200px;
+}
+
+.ProblemSetCards:hover {
+    background-color: #5a5a62;
+}
+
+.ProblemSetTitle {
+    font-size: 25px;
+    padding-left: 5px;
+}
+
+.ProblemSetTitleContainer {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ProblemSetDescriptionContainer {
+    padding-left: 5px;
+}

@@ -9,8 +9,11 @@ router.post("/getProblemSets", async (req, res) => {
     const fetch_problemset_query = "SELECT * FROM problem_sets WHERE created_by = ?";
     try {
         const [problem_sets] = await db.query(fetch_problemset_query, [user_id]);
-        return res.status(200).json({problem_sets: problem_sets[0]});
+        return res.status(200).json({problem_sets: problem_sets});
     } catch (error) {
         res.status(500).json({message: "Internal Server Error"});
     }
 })
+
+
+module.exports = router
