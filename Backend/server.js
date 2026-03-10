@@ -32,6 +32,6 @@ app.use("/api/users", userAPIs);
 app.use("/utils/", utilAPIs);
 app.use("/api/problemsets", problemSetsAPIs);
 
-app.listen(5500, () => {
+app.listen(parseInt(process.env.REACT_APP_SERVER_PORT), () => {
     console.log("Server is running");
 });
