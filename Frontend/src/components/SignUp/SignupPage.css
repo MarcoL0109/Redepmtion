@@ -33,12 +33,12 @@
 }
 
 .SignUpButton:disabled {
-    background-color: grey; /* Keep original background color */
-    cursor: not-allowed; /* Change cursor to indicate disabled state */
+    background-color: grey;
+    cursor: not-allowed;
 }
 
 .SignUpButton:disabled:hover {
-    background-color: grey; /* Ensure hover effect is not applied */
+    background-color: grey;
 }
 
 .HomeButton {

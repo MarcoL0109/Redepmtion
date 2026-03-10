@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import "./ProblemSetCard.css"
+import "./ProblemSetCard.css";
+import PlayButton from "../../assets/play.svg";
+
+
 
 interface ProblemSets {
     problem_set: {
@@ -20,6 +23,14 @@ function ProblemSetCard({problem_set}: ProblemSets) {
             
             <div className="ProblemSetDescriptionContainer">
                 <span>{problem_set.problem_set_description}</span>
+            </div>
+
+            <div className="ProblemSetCountContainer">
+                <span>{problem_set.problem_counts} Problems</span>
+            </div>
+
+            <div className="PlayButton">
+                <img className="PlayButtonIcon" src={PlayButton} alt="Play Icon"/>
             </div>
             
         </div>

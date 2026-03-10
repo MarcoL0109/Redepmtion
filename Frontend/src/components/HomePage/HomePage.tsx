@@ -1,8 +1,10 @@
 import "./HomePage.css";
 import NavBar from "../NavBar/NavBar";
 import ProblemSetCard from "../ProblemSetCard/ProblemSetCard";
+import { Mosaic } from 'react-loading-indicators';
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import AddIcon from "../../assets/add.svg";
 
 
 function HomePage() {
@@ -25,7 +27,9 @@ function HomePage() {
         last_update_at: ""
         }
     ])
+    const [isloaded, setIsLoaded] = useState<boolean>(false);
 
+    
     useEffect(() => {
         const checkUserValidation = async () => {
             const getSessionInfoRepsonse = await fetch(`${UTILS_API_URL}/SessionInfo`, {
@@ -71,6 +75,7 @@ function HomePage() {
                 const fetched_problem_sets_json = await fecth_problem_set_response.json();
                 const fetched_problem_sets_data = fetched_problem_sets_json.problem_sets;
                 setProblemSets(fetched_problem_sets_data);
+                setIsLoaded(true);
             }
         }
         checkUserValidation();
@@ -81,16 +86,29 @@ function HomePage() {
     return (
         <div className="HomePageContainer">
             <NavBar user_data={userData}/>
-            <div className="problemSetCardsContainer">
-                {
-                    problemSets.map(problem_set => (
-                        <div key={problem_set.problem_set_id}>
-                            <ProblemSetCard problem_set={problem_set}/>
-                        </div>
-                    ))
-                }
-            </div>
-            
+            {
+                isloaded ?
+                <div className="problemSetCardsContainer">
+                    {
+                        problemSets.map(problem_set => (
+                            <div key={problem_set.problem_set_id}>
+                                <ProblemSetCard problem_set={problem_set}/>
+                            </div>
+                        ))
+                    }
+                </div> :
+                <div className="LoadingAnimationContainer">
+                    <Mosaic color="#d6af37" size="large"/>
+                </div>
+            }
+            {
+                isloaded && 
+                <div className="AddDivButtonContainer">
+                    <div className="circle">
+                        <div className="add-symbol">+</div>
+                    </div>
+                </div>
+            }
         </div>
     )
 }

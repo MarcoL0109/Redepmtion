@@ -80,7 +80,7 @@ const UserAccountBox: React.FC<UserAccountBoxProps> = ({ onClose, user_data }) =
                 <div className="ActionButton">
                     <div className="IconContainers">
                         <img className="collectionImage" src={CollectionIcon} alt="Collection Icon"/>
-                        <strong>Collections</strong>
+                        <strong>Albums</strong>
                     </div>
                     
                 </div>

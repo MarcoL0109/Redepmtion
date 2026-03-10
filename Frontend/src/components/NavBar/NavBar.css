@@ -7,19 +7,16 @@
     justify-content: center;
 }
 
-
 .NavBarTitleText {
-    font-family: "Inika", serif;
+    font-family: Courier, monospace;
     font-weight: 700;
     font-style: normal;
-    margin-left: 20px;
+    margin-left: 19px;
 }
-
 
 .LogOutIcon {
     margin-right: 5px;
 }
-
 
 .UserIconCircle {
     background-color: grey;
