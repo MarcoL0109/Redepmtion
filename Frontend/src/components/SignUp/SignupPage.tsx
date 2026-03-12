@@ -15,6 +15,7 @@ function SignUpPage() {
     const [diffPassword, setDiffPassword] = useState<boolean>(false);
     const [existingAccount, setExistingAccount] = useState<boolean>(false);
     const [displayLoading, setDisplayLoading] = useState<boolean>(false);
+    const [displayErrorMessage, setDisplayErrorMessage] = useState<boolean>(false);
     const USER_API_URL = process.env.VITE_USER_API_URL;
 
 
@@ -55,7 +56,8 @@ function SignUpPage() {
                 setDisplayLoading(false);
             }
             
-            if (createUserStatus.status === 200) {navigate("/SignIn");}
+            if (createUserStatus.status === 200) {navigate("/ActivationTempPage");}
+            else if (createUserStatus.status === 500) {setDisplayErrorMessage(true);}
 
         } catch (error) {
             console.log(error);
@@ -118,17 +120,19 @@ function SignUpPage() {
                             <span>An Existing Account is Found under {signUpEmail}</span>
                         </div>
                     }
-                    {
-                        !displayLoading &&
-                        <button type="submit" className="SignUpButton" disabled={diffPassword}>
-                            <strong>Sign Up</strong>
-                        </button>
-                    }
 
+                    {displayErrorMessage && 
+                        <div className="DiffPasswordContainer">
+                            <span>Something went wrong during registering your account. Please try again</span>
+                        </div>
+                    }
                     {
-                        displayLoading &&
+                        !displayLoading ?
+                            <button type="submit" className="SignUpButton" disabled={diffPassword}>
+                                <strong>Sign Up</strong>
+                            </button> :
                         <div className="loading_icon_animations">
-                            <FourSquare color="#32cd32" size="medium" text="" textColor="" />
+                            <FourSquare color="#ffbc05" size="medium" text="" textColor="" />
                         </div>
                     }
                     

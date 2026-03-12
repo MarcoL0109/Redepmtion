@@ -3,7 +3,9 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const router = express.Router();
 const db = require('../models/db');
+const { v4: uuidv4 } = require('uuid');
 const nodemailer = require("nodemailer")
+const {encrypt_object, decrypt_object} = require("../security_utils/encryption")
 const transport = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -17,15 +19,17 @@ const transport = nodemailer.createTransport({
 router.post("/login", async (req, res) => {
     try {
         const {email, password } = req.body;
-        const search_from_email_query = "SELECT user_id, password FROM user_info WHERE email = ?";
+        const search_from_email_query = "SELECT user_id, password, activated FROM user_info WHERE email = ?";
         const [ result ] = await db.query(search_from_email_query, [email]);
         if (result.length === 0) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(404).json({ message: "User Not Found" });
         }
         const hashed_password = result[0].password;
         const correct_password = await bcrypt.compare(password, hashed_password);
+        const is_activated = result[0].activated;
 
         if (!correct_password) {return res.status(401).json({ message: "Password Incorrect" })}
+        else if (!is_activated) {return res.status(400).json({message: "Account Not Activated"})}
         else {
             req.session.user_id = result[0].user_id;
             return res.status(200).json({ message: "Login successfully" });
@@ -52,19 +56,73 @@ router.post("/logout", (req, res) => {
 router.post("/createUsers", async (req, res) => {
     try {
         const { email, username, confirmPassword } = req.body;
-        const search_from_email_query = "SELECT user_id FROM user_info WHERE email = ?";
+        const search_from_email_query = "SELECT user_id, activated FROM user_info WHERE email = ?";
+        let update_user = false;
+        let new_user_id = -1;
         const [ result ] = await db.query(search_from_email_query, [email]);
         if (result.length > 0) {
-            return res.status(401).json({ message: "Account Already Exist" })
+            if (result[0].activated) {
+                return res.status(401).json({ message: "An Activated Account Already Existed" });
+            } else {
+                update_user = true;
+                new_user_id = result[0].user_id;
+            }
         }
-        const create_user_query = "INSERT INTO user_info (username, email, password) VALUES (?, ?, ?)";
+        const today = new Date();
+        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
         const hashed_password = await bcrypt.hash(confirmPassword, 10);
-        await db.query(create_user_query, [username, email, hashed_password]);
+        if (!update_user) {
+            const create_user_query = "INSERT INTO user_info (username, email, password, activated, activation_expiration_datetime) VALUES (?, ?, ?, ?, ?)";
+            const inserted_user = await db.query(create_user_query, [username, email, hashed_password, 0, tomorrow]);
+            new_user_id = inserted_user[0].insertId;
+        } else {
+            const update_existing_user_query = "UPDATE user_info SET username = ?, password = ?, activation_expiration_datetime = ? WHERE email = ?";
+            await db.query(update_existing_user_query, [username, hashed_password, tomorrow, email]);
+        }
+        
+        const validationKey = uuidv4();
+        const activation_data = {user_id: new_user_id, key: validationKey}
+        const encrypted_object = encrypt_object(activation_data, process.env.REACT_APP_ACTIVATION_ENCRYPTION_KEY);
+        const encrypt_object_for_url = encodeURIComponent(JSON.stringify(encrypted_object));
+        const activation_url = `${process.env.VITE_USER_API_URL}/activation?data=${encrypt_object_for_url}`;
+        const insert_activation_record_query = "INSERT INTO activations (user_id, activation_code, expiration_datetime) VALUES (?, ?, ?)";
+        await db.query(insert_activation_record_query, [new_user_id, validationKey, tomorrow]);
+        const mailOptaion = {
+            from: 'marcolau733@gmail.com',
+            to: email,
+            subject: 'Activating new registered account',
+            html: `
+                <h1>Account Activation</h1>
+                <p>Click the following link to activate your account. This link will be expired after 24 hours</p>
+                <a href="${activation_url}">Click here</a>
+            `
+        }
+        await transport.sendMail(mailOptaion);
         return res.status(200).json({ message: "User created successfully" })
     } catch (error) {
-        return res.status(500).json({message: "Internal Server Error"});
+        console.log(error);
+        return res.status(500).json({message: error});
     } 
 });
+
+
+router.get("/activation", async (req, res) => {
+
+    const encrypted_data_object = req.query;
+    const encrypted_object_json = JSON.parse(encrypted_data_object.data)
+    const decrypted_object = decrypt_object(encrypted_object_json, process.env.REACT_APP_ACTIVATION_ENCRYPTION_KEY);
+
+    const search_for_activation_record_query = "SELECT activation_record_id FROM activations WHERE user_id = ? AND activation_code = ? AND now() < expiration_datetime";
+    const [activation_record] = await db.query(search_for_activation_record_query, [decrypted_object.user_id, decrypted_object.key]);
+
+    if (activation_record.length === 0) {
+        res.status(401).json({message: "This link is no longer valid. Please register for another in the sign up page"});
+    } else {
+        const activate_user_account_query = "UPDATE user_info SET activated = 1 WHERE user_id = ?";
+        await db.query(activate_user_account_query, [decrypted_object.user_id]);
+        res.status(200).json({message: "Account activated successfully"});
+    }
+})
 
 
 router.post("/forgotPassword", async (req, res) => {

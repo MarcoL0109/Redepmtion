@@ -8,16 +8,18 @@
     "connect-redis": "^9.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "crypto": "^1.0.1",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "mysql2": "^3.18.2",
     "nodemailer": "^8.0.1",
-    "react": "^19.3.0-canary-46103596-20260305",
-    "react-dom": "^19.3.0-canary-46103596-20260305",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-fontawesome": "^1.7.1",
     "react-loading-indicators": "^1.0.1",
-    "redis": "^5.11.0"
+    "redis": "^5.11.0",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "react-error-overlay": "^6.0.9"

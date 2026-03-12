@@ -9,6 +9,7 @@ function SignInPage() {
     const [password, setPassword] = useState("");
     const navigate = useNavigate()
     const [incorrectLoginInfo, setincorrectLoginInfo] = useState<boolean>(false);
+    const [notActivated, setNotActivated] = useState<boolean>(false);
     const USER_API_URL = process.env.VITE_USER_API_URL;
 
 
@@ -23,6 +24,7 @@ function SignInPage() {
                 body: JSON.stringify({ email, password }),
             })
             setincorrectLoginInfo(login_status.status === 401 || login_status.status === 404);
+            setNotActivated(login_status.status === 400);
             if (login_status.status === 200) {
                 navigate("/HomePage");
             }
@@ -52,6 +54,7 @@ function SignInPage() {
                     </button>
                     <div className="AccountManagementTags">
                         {incorrectLoginInfo && <div className="AccoutNotFoundMessageContainer"><span className="AccoutNotFoundMessage">Incorrect Username or Password</span></div>}
+                        {notActivated && <div className="AccoutNotFoundMessageContainer"><span className="AccoutNotFoundMessage">Account Not Activated</span></div>}
                         <a onClick={() => (navigate("/ForgotPassword"))} className="ForgotPasswordTag"><strong>Forgot Password?</strong></a>
                         <a onClick={() => {navigate('/SignUp')}} className="SignUpTag"><strong>Sign Up</strong></a>
                     </div>

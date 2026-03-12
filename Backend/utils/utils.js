@@ -2,8 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
-const db = require('../models/db');
-
+const db = require('../models/db')
 
 
 router.get("/SessionInfo", (req, res) => {
@@ -13,7 +12,7 @@ router.get("/SessionInfo", (req, res) => {
 
 router.post("/InsertImage", (req, res) => {
     fs.readFile("./Frontend/src/assets/test.jpg", (err, data) => {
-        if (err) throw err;  // Handle error
+        if (err) throw err;
 
         const sqlInsert = 'UPDATE user_info SET user_icon = ? WHERE user_id = 4';
         db.query(sqlInsert, [data]);

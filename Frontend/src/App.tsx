@@ -7,6 +7,7 @@ import ForgotPasswordPage from "./components/ForgetPassword/ForgotPasswordPage";
 import ValidateResetPasswordCode from "./components/ValidateCode/ValidateCode";
 import ResetPassword from "./components/ResetPassword/ResetPassword";
 import HomePage from "./components/HomePage/HomePage";
+import TempPageForActivation from "./components/TempPageForActivation/TempPageForActivation";
 
 
 function JoinRoom() {
@@ -33,10 +34,11 @@ function App() {
         <Route path="/" element={<JoinRoom />} />
         <Route path="/SignIn" element={<SignInPage />} />
         <Route path="/SignUp" element={<SignUpPage/>} />
+        <Route path="/ActivationTempPage" element={<TempPageForActivation/>} />
         <Route path="/ForgotPassword" element={<ForgotPasswordPage/>}/>
-        <Route path="/ValidateResetPasswordCode" element={<ValidateResetPasswordCode/>}/>
-        <Route path="/ResetPassword" element={<ResetPassword/>}/>
-        <Route path="/HomePage" element={<HomePage/>}/>
+        <Route path="/ValidateResetPasswordCode" element={<ValidateResetPasswordCode/>} />
+        <Route path="/ResetPassword" element={<ResetPassword/>} />
+        <Route path="/HomePage" element={<HomePage/>} />
       </Routes>
     </BrowserRouter>
   );
