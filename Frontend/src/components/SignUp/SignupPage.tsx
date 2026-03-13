@@ -60,7 +60,7 @@ function SignUpPage() {
             else if (createUserStatus.status === 500) {setDisplayErrorMessage(true);}
 
         } catch (error) {
-            console.log(error);
+            setDisplayErrorMessage(true);
         }
     }
 

@@ -16,4 +16,17 @@ router.post("/getProblemSets", async (req, res) => {
 })
 
 
+router.post("/getProblems", async (req, res) => {
+    const {problem_set_id} = req.body;
+    const fetch_problem_query = "SELECT * FROM problems WHERE problem_set_id = ?";
+    try {
+        const [problems] = await db.query(fetch_problem_query, [problem_set_id]);
+        return res.status(200).json({problem_list: problems});
+    } catch (error) {
+        return res.status(500).json({message: "Internal Server Error"});
+    }
+
+})
+
+
 module.exports = router

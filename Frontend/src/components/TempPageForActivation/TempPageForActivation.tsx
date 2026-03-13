@@ -21,7 +21,7 @@ function TempPageForActivation() {
     return (
         <div>
             <h1>An email has been sent to you to activate your newly registered account.</h1>
-            <p>Please note that the link in the email will expire after 24 hours.</p>
+            <p>Please note that the link in the email will expire after 30 minutes.</p>
             <p>You will be redirected to the sign-in page in {countDown} seconds.</p>
         </div>
     );

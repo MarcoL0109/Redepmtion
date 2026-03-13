@@ -19,7 +19,7 @@ const transport = nodemailer.createTransport({
 router.post("/login", async (req, res) => {
     try {
         const {email, password } = req.body;
-        const search_from_email_query = "SELECT user_id, password, activated FROM user_info WHERE email = ?";
+        const search_from_email_query = "SELECT * FROM user_info WHERE email = ?";
         const [ result ] = await db.query(search_from_email_query, [email]);
         if (result.length === 0) {
             return res.status(404).json({ message: "User Not Found" });
@@ -31,10 +31,12 @@ router.post("/login", async (req, res) => {
         if (!correct_password) {return res.status(401).json({ message: "Password Incorrect" })}
         else if (!is_activated) {return res.status(400).json({message: "Account Not Activated"})}
         else {
+            // Should store more user information in the session for usage on other component, then I can just do a get request on session info to get all the needed user data
             req.session.user_id = result[0].user_id;
             return res.status(200).json({ message: "Login successfully" });
         }
         } catch (error) {
+            console.log(error);
             return res.status(500).json({ message: "Internal Server Error" });
         }
 })
@@ -69,7 +71,7 @@ router.post("/createUsers", async (req, res) => {
             }
         }
         const today = new Date();
-        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        const tomorrow = new Date(today.getTime() + 30 * 60 * 1000);
         const hashed_password = await bcrypt.hash(confirmPassword, 10);
         if (!update_user) {
             const create_user_query = "INSERT INTO user_info (username, email, password, activated, activation_expiration_datetime) VALUES (?, ?, ?, ?, ?)";

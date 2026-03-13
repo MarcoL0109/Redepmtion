@@ -8,6 +8,7 @@ import ValidateResetPasswordCode from "./components/ValidateCode/ValidateCode";
 import ResetPassword from "./components/ResetPassword/ResetPassword";
 import HomePage from "./components/HomePage/HomePage";
 import TempPageForActivation from "./components/TempPageForActivation/TempPageForActivation";
+import ProblemList from "./components/ProblemList/ProblemList";
 
 
 function JoinRoom() {
@@ -39,6 +40,7 @@ function App() {
         <Route path="/ValidateResetPasswordCode" element={<ValidateResetPasswordCode/>} />
         <Route path="/ResetPassword" element={<ResetPassword/>} />
         <Route path="/HomePage" element={<HomePage/>} />
+        <Route path="/ProblemList" element={<ProblemList/>} />
       </Routes>
     </BrowserRouter>
   );

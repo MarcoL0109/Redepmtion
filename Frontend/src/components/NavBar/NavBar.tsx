@@ -14,7 +14,6 @@ const NavBar: React.FC<NavBarProps> = ({user_data}) => {
     const [isDisplay, setIsDisplay] = useState<boolean>(false);
     const handleProfileClick = async (event: React.MouseEvent) => {
         event.stopPropagation();
-        console.log('Clicked')
         setIsDisplay(prev => !prev);
         // const testInsertImage = await fetch(`${UTILS_API_URL}/InsertImage`, {
         //     method: "POST",
@@ -31,10 +30,11 @@ const NavBar: React.FC<NavBarProps> = ({user_data}) => {
             <h1 className="NavBarTitleText"><strong>Redemption</strong></h1>
             <div className="UserIconCircle" onClick={handleProfileClick}>
                 {
-                    user_data.user_icon === "" ? <FontAwesomeIcon icon={faUser} size="3x" /> : 
+                    user_data.user_icon === "" ? <FontAwesomeIcon icon={faUser} size="3x" /> :
                     <img className="UserIconImage" src={user_data.user_icon} alt="User Icon" />
                 }
             </div>
+            
             {isDisplay &&
             <UserAccountBox onClose={handleClose} user_data={user_data}/>
             }

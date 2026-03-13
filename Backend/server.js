@@ -23,7 +23,9 @@ app.use(sessions({
     store: new RedisStore({client: redisClient}),
     resave: false,
     saveUninitialized: true,
-    cookie: {maxAge: 30 * 60 * 1000}
+    cookie: {
+        maxAge: 30 * 60 * 1000,
+    }
 }))
 app.use(express.json());
 

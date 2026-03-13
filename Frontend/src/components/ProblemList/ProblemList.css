@@ -1,0 +1,10 @@
+
+.ProblemList {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 0 30px;
+    margin-top: 10px;
+    list-style: none;
+}

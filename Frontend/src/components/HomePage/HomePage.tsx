@@ -3,8 +3,7 @@ import NavBar from "../NavBar/NavBar";
 import ProblemSetCard from "../ProblemSetCard/ProblemSetCard";
 import { Mosaic } from 'react-loading-indicators';
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import AddIcon from "../../assets/add.svg";
+import { useEffect, useState, useRef } from "react";
 
 
 function HomePage() {
@@ -28,6 +27,7 @@ function HomePage() {
         }
     ])
     const [isloaded, setIsLoaded] = useState<boolean>(false);
+    const [hasFetched, setHasFetched] = useState(false);
 
     
     useEffect(() => {
@@ -41,28 +41,31 @@ function HomePage() {
             if (session_user_id === null) {
                 nevagate("/SignIn");
             } else {
-                const fetch_user_info_response = await fetch(`${USER_API_URL}/getUserInfo`, {
+
+                const get_user_data_response = await fetch(`${USER_API_URL}/getUserInfo`, {
                     method: "POST",
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Content-type": "application/json"
                     },
                     credentials: "include",
                     body: JSON.stringify({user_id: session_user_id}),
-                })
-                const user_data_json = await fetch_user_info_response.json();
-                const fetchedUserData = user_data_json.userData
+                });
+
+                const user_data_json = await get_user_data_response.json();
+                const user_data_content = user_data_json.userData;
+
                 let image_url = "";
-                if (fetchedUserData.user_icon !== null) {
-                    const arrayBuffer = new Uint8Array(fetchedUserData.user_icon.data);
+                if (user_data_content.user_icon !== null) {
+                    const arrayBuffer = new Uint8Array(user_data_content.user_icon.data);
                     const image_blob = new Blob([arrayBuffer], { type: 'image/jpg' });
                     image_url = URL.createObjectURL(image_blob);
                 }
                 setUserData({
-                    username: fetchedUserData.username,
-                    email: fetchedUserData.email,
-                    user_id: fetchedUserData.user_id,
-                    created_at: fetchedUserData.create_date.toString(),
-                    user_icon: image_url
+                    username: user_data_content.username,
+                    email: user_data_content.email,
+                    user_id: user_data_content.user_id,
+                    created_at: user_data_content.create_date.toString(),
+                    user_icon: image_url,
                 })
                 const fecth_problem_set_response = await fetch(`${PROBLEM_SET_API_URL}/getProblemSets`, {
                     method: "POST",
@@ -76,8 +79,10 @@ function HomePage() {
                 const fetched_problem_sets_data = fetched_problem_sets_json.problem_sets;
                 setProblemSets(fetched_problem_sets_data);
                 setIsLoaded(true);
+                setHasFetched(true);
             }
         }
+
         checkUserValidation();
         
     }, []);
