@@ -8,10 +8,11 @@ import { AnswerOptions, CorrectAnswer, UpdatedValues } from '../ProblemList/Prob
 
 
 
-function Sortable({ id, index, question_text, question_type, sequence_no, answer_options, correct_answer, case_sensitive, time_allowed_in_seconds, ProblemsChange }: 
+function Sortable({ id, index, question_text, question_type, sequence_no, answer_options, correct_answer, case_sensitive, time_allowed_in_seconds, ProblemsChange, RemoveProblemChange }: 
     { id: number; index: number; question_text: string, question_type: string, sequence_no: number,
         answer_options: AnswerOptions, correct_answer: CorrectAnswer, case_sensitive: number, time_allowed_in_seconds: number,
-        ProblemsChange:( id: number, change: UpdatedValues) => void }) {
+        ProblemsChange:( id: number, change: UpdatedValues) => void,
+        RemoveProblemChange: (id: number, attribute: keyof UpdatedValues) => void }) {
     const [element, setElement] = useState<Element | null>(null);
     const handleRef = useRef<HTMLButtonElement | null>(null);
     const { isDragging } = useSortable({ id, index, element, handle: handleRef });
@@ -25,7 +26,6 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
     const time_range = [5, 10, 15, 20, 25, 30];
 
 
-
     useEffect(() => {
         setMode(question_type);
         setSelectedOption(correct_answer.MC);
@@ -35,31 +35,79 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
     }, []);
 
 
+    useEffect(() => {
+        if (JSON.stringify(currentAnswerOptions) === JSON.stringify(answer_options)) {
+            RemoveProblemChange(id, "answer_options");
+        }
+    }, [currentAnswerOptions, answer_options]);
+
+
+    useEffect(() => {
+        if (JSON.stringify(currentCorrectAnswer) === JSON.stringify(correct_answer)) {
+            RemoveProblemChange(id, "correct_answer");
+        }
+    }, [currentCorrectAnswer, correct_answer]);
+
+
     const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         // Set which option is chosen first, then set the correct answer after.
         setSelectedOption(event.target.value);
-        const prevCorrectAnswers = currentCorrectAnswer;
-        setCurrentAnswerOptions(prevCorrectAnswers => ({
+        // console.log("option:", event.target.value)
+        setCurrentCorrectAnswer(prevCorrectAnswers => ({
             ...prevCorrectAnswers,
             "MC": event.target.value,
         }))
-
+        const prevCorrectAnswers = currentCorrectAnswer;
         ProblemsChange(id, {
             "correct_answer": {
                 ...prevCorrectAnswers,
                 "MC": event.target.value,
             }
         })
+        if (currentCorrectAnswer === correct_answer) {
+            RemoveProblemChange(id, "correct_answer");
+        }
     };
+
+    const handleCorrectBlankAnswerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const correctBlankAnswer = event.target.value;
+        const prevCorrectAnswer = currentCorrectAnswer;
+
+        setCurrentCorrectAnswer(prevCorrectAnswers => ({
+            ...prevCorrectAnswers,
+            "Blanks": correctBlankAnswer,
+        }))
+
+        ProblemsChange(id, {
+            "correct_answer": {
+                ...prevCorrectAnswer,
+                "Blanks": correctBlankAnswer,
+            }
+        })
+        if (currentCorrectAnswer === correct_answer) {
+            RemoveProblemChange(id, "correct_answer");
+        }
+    }
 
 
     const handleModeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setMode(event.target.value);
+        const selectedMode = event.target.value;
+        setMode(selectedMode);
+        ProblemsChange(id, {"question_type": selectedMode})
+        if (selectedMode === question_type) {
+            RemoveProblemChange(id, "question_type");
+        }
     }
 
 
     const handleToggleCaseSensitive = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setIsCaseSensitive(event.target.checked === false ? 0 : 1);
+        const checked = event.target.checked;
+        const numeric_checked = checked === false ? 0 : 1
+        setIsCaseSensitive(numeric_checked);
+        ProblemsChange(id, {"case_sensitive": numeric_checked});
+        if (numeric_checked === case_sensitive) {
+            RemoveProblemChange(id, "case_sensitive");
+        }
     }
 
 
@@ -67,12 +115,19 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
         const selected_seconds = event.target.value;
         const formatted_seconds = parseInt(selected_seconds.replace(/s$/, ''), 10);
         setTimeAllow(formatted_seconds);
+        ProblemsChange(id, {"time_allowed_in_seconds": formatted_seconds});
+        if (formatted_seconds === time_allowed_in_seconds) {
+            RemoveProblemChange(id, "time_allowed_in_seconds");
+        }
     }
 
 
     const handleQuestionTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         const new_question_text = event.target.value;
         ProblemsChange(id, {"question_text": new_question_text});
+        if (new_question_text === question_text) {
+            RemoveProblemChange(id, "question_text");
+        }
     }
 
 
@@ -80,11 +135,14 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
         const new_option_text = event.target.value;
         const current_answer_options = currentAnswerOptions || {};
         // This is using the initial values of optional text as a state and extend that value;
-        setCurrentAnswerOptions(prevOptions => ({
-            ...prevOptions,
-            [option_label]: new_option_text
-        }));
-        // The extended state value will then be used to extend the modifiedProblems object in the top component
+        setCurrentAnswerOptions(prevOptions => {
+            const updatedOptions = {
+                ...prevOptions,
+                [option_label]: new_option_text
+            };
+            return updatedOptions;
+        });
+
         ProblemsChange(id, {
             answer_options: {
                 ...current_answer_options,
@@ -148,13 +206,11 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
                                 <label className="CaseSensitiveModeLabel" htmlFor="CaseSensitiveMode">Case Sensitive</label>
                             </div>
                             <div className="BlankAnswerContainer">
-                                <input className="BlankAnswerInput" type="text" defaultValue={blankAnswer}/>
+                                <input className="BlankAnswerInput" type="text" defaultValue={blankAnswer} onChange={handleCorrectBlankAnswerChange}/>
                             </div>
                             
                         </div>
                     }
-                    
-
                 </div>
                 
                 <div className="ModeSelectionContainer">

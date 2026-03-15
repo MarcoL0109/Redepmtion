@@ -21,4 +21,5 @@
     background-color: rgb(122, 118, 118);
     font-family: 'Courier New', Courier, monospace;
     position: sticky;
+    top: 0;
 }

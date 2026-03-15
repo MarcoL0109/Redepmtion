@@ -27,6 +27,10 @@ interface UserData {
     user_icon: string,
 }
 
+interface ObejctForAPI {
+    [key: string]: string; // All values are strings after JSON.stringify
+}
+
 export interface AnswerOptions {
     "A": string,
     "B": string,
@@ -129,7 +133,18 @@ function ProblemList() {
 
 
     useEffect(() => {
-        console.log(modifiedProblems)
+        // console.log(modifiedProblems)
+        const cleanedProblems = { ...modifiedProblems };
+
+        Object.keys(cleanedProblems).forEach((key: string) => {
+            const numericKey = Number(key)
+            if (Object.keys(cleanedProblems[numericKey]?.attributes || {}).length === 0) {
+                delete cleanedProblems[numericKey];
+            }
+        });
+        if (Object.keys(cleanedProblems).length !== Object.keys(modifiedProblems).length) {
+            setModifiedProblems(cleanedProblems);
+        }
     }, [modifiedProblems])
 
 
@@ -158,12 +173,39 @@ function ProblemList() {
         }));
     }
 
+    const handleRemoveAttribute = (problemId: number, attribute: keyof UpdatedValues) => {
+        setModifiedProblems(prev => {
+            const updatedProblems = { ...prev };
+            delete updatedProblems[problemId]?.attributes[attribute];
+            return updatedProblems;
+        });
+    };
+
+    const handleSaveUpdates = async () => {
+        let objectForAPICall: ObejctForAPI = {}
+        for (let key in modifiedProblems) {
+            if (typeof modifiedProblems[key] === "object") {
+                objectForAPICall[key] = JSON.stringify(modifiedProblems[key]);
+            } else {
+                objectForAPICall[key] = modifiedProblems[key];
+            }
+        }
+        const update_problems_response = await fetch(`${PROBLEM_SET_API_URL}/SaveUpdatedProblems`, {
+            method: "POST",
+            headers: {
+                "Content-type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({update_values: objectForAPICall})
+        })
+    }
+
     return (
         <div className="HomePageContainer">
             <NavBar user_data={userData} />
             {
                 Object.keys(modifiedProblems).length > 0 &&
-                <button className="SaveButton">Save</button>
+                <button className="SaveButton" onClick={handleSaveUpdates}>Save</button>
             }
             
             {
@@ -174,7 +216,8 @@ function ProblemList() {
                             <Sortable key={problem.problem_id} id={problem.problem_id} index={index} question_text={problem.question_text} 
                             question_type={problem.question_type} sequence_no={problem.sequence_no} answer_options={problem.answer_options}
                             correct_answer={problem.correct_answer} case_sensitive={problem.case_sensitive} time_allowed_in_seconds={problem.time_allowed_in_seconds}
-                            ProblemsChange={handleUpdateProblemSet}/>
+                            ProblemsChange={handleUpdateProblemSet}
+                            RemoveProblemChange={handleRemoveAttribute}/>
                         ))}
                     </ul>
                 </DndContext>:

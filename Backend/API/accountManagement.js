@@ -31,7 +31,6 @@ router.post("/login", async (req, res) => {
         if (!correct_password) {return res.status(401).json({ message: "Password Incorrect" })}
         else if (!is_activated) {return res.status(400).json({message: "Account Not Activated"})}
         else {
-            // Should store more user information in the session for usage on other component, then I can just do a get request on session info to get all the needed user data
             req.session.user_id = result[0].user_id;
             return res.status(200).json({ message: "Login successfully" });
         }

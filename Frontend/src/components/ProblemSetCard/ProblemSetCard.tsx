@@ -40,7 +40,6 @@ function ProblemSetCard({problem_set}: ProblemSets) {
             
         </div>
     )
-
 }
 
 
