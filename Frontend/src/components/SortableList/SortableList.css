@@ -65,27 +65,96 @@
     width: 100%;
     height: auto;
     display: inline-block;
+    position: relative;
 }
 
 .ListContainer {
     width: 100%;
-    display: flex;  
+    display: flex;
 }
 
-.ContQuestionContentDiventDiv {
+.QuestionContentDiv {
     padding-left: 15px;
     font-size: 20px;
+    display: flex;
+    
 }
 
 .QuestionTextArea {
     border: none;
     font-size: 20px;
+    width: 100%;
     background-color: #373434;
+    /* background-color: red; */
     opacity: 0.7;
 }
+
 
 .ButtonContainer {
     display: flex;
     align-items: center;
 }
+
+.ModeSelectionContainer {
+    position: absolute;
+    right: 10px;
+}
+
+.ModeSelection {
+    font-size: 25px;
+    background-color: white;
+    color: black;
+    border-radius: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    text-align: center;
+    padding: 5px;
+    margin-left: 10px;
+}
+
+.MCAnswerOptionContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.CaseSensitiveContainer {
+    display: flex;
+    align-items: center;
+}
+
+.CaseSensitiveModeLabel {
+    padding-left: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 20px;
+}
+
+.BlankAnswerContainer {
+    margin-bottom: 15px;
+}
+
+.BlankAnswerInput {
+    width: auto;
+    height: 50px;
+    border-radius: 10px;
+    font-size: 25px;
+    margin-top: 10px;
+    background-color: white;
+    color: black;
+    font-family: 'Courier New', Courier, monospace;
+    padding-left: 10px;
+}
+
+.DeleteButtonContainer {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.DeleteButton {
+    background-color: rgb(221, 70, 70);
+    color: black;
+}
+
+
 

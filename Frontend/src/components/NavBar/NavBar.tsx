@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from '@fortawesome/free-solid-svg-icons';
 import { useState } from "react";
 import UserAccountBox from "../UserAccountBox/UserAccountBox";
+import { useNavigate } from "react-router-dom";
 
 interface NavBarProps {
     user_data: {username: string, email: string, user_id: number, created_at: string, user_icon: string};
@@ -11,6 +12,7 @@ interface NavBarProps {
 const NavBar: React.FC<NavBarProps> = ({user_data}) => {
 
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL;
+    const navigate = useNavigate();
     const [isDisplay, setIsDisplay] = useState<boolean>(false);
     const handleProfileClick = async (event: React.MouseEvent) => {
         event.stopPropagation();
@@ -27,7 +29,7 @@ const NavBar: React.FC<NavBarProps> = ({user_data}) => {
 
     return (
         <nav className="NavBar">
-            <h1 className="NavBarTitleText"><strong>Redemption</strong></h1>
+            <h1 className="NavBarTitleText" onClick={() => navigate("/HomePage")}><strong>Redemption</strong></h1>
             <div className="UserIconCircle" onClick={handleProfileClick}>
                 {
                     user_data.user_icon === "" ? <FontAwesomeIcon icon={faUser} size="3x" /> :

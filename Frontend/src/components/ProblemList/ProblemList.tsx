@@ -13,8 +13,10 @@ interface Problem {
     sequence_no: number;
     question_type: string;
     question_text: string;
-    answer_options: Record<string, any>;
-    correct_answer: Record<string, any>;
+    answer_options: AnswerOptions;
+    correct_answer: CorrectAnswer;
+    case_sensitive: number,
+    time_allowed_in_seconds: number,
 }
 
 interface UserData {
@@ -24,6 +26,28 @@ interface UserData {
     created_at: string,
     user_icon: string,
 }
+
+export interface AnswerOptions {
+    "A": string,
+    "B": string,
+    "C": string,
+    "D": string
+}
+
+export interface CorrectAnswer {
+    "MC": string,
+    "Blanks": string
+}
+
+export interface UpdatedValues {
+    "question_type" ?: string,
+    "question_text" ?: string,
+    "answer_options" ?: AnswerOptions,
+    "correct_answer" ?: CorrectAnswer,
+    "case_sensitive" ?: number,
+    "time_allowed_in_seconds" ?: number,
+}
+
 
 function ProblemList() {
     const location = useLocation();
@@ -35,7 +59,7 @@ function ProblemList() {
 
     const [displayError, setDisplayError] = useState<boolean>(false);
     const [problemList, setProblemList] = useState<Problem[]>([]);
-    const [isLoaded, setIsLoaded] = useState<boolean>(false);
+    const [isLoaded, setIsLoaded] = useState<boolean>(false);   
     const [userData, setUserData] = useState<UserData>({
         username: "",
         email: "",
@@ -43,6 +67,7 @@ function ProblemList() {
         created_at: "",
         user_icon: "",
     });
+    const [modifiedProblems, setModifiedProblems] = useState<{ [key: number]: { attributes: UpdatedValues } }>({});
 
 
     useEffect(() => {
@@ -102,6 +127,12 @@ function ProblemList() {
         fetch_user_data_from_session();
     }, []);
 
+
+    useEffect(() => {
+        console.log(modifiedProblems)
+    }, [modifiedProblems])
+
+
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
 
@@ -115,9 +146,26 @@ function ProblemList() {
         }
     };
 
+    const handleUpdateProblemSet = (problemId: number, changes: UpdatedValues) => {
+        setModifiedProblems(prev => ({
+            ...prev,
+            [problemId]: {
+                attributes: {
+                    ...(prev[problemId]?.attributes || {}),
+                    ...changes,
+                },
+            },
+        }));
+    }
+
     return (
         <div className="HomePageContainer">
             <NavBar user_data={userData} />
+            {
+                Object.keys(modifiedProblems).length > 0 &&
+                <button className="SaveButton">Save</button>
+            }
+            
             {
                 isLoaded ? 
                 <DndContext onDragEnd={handleDragEnd}>
@@ -125,7 +173,8 @@ function ProblemList() {
                         {problemList.map((problem, index) => (
                             <Sortable key={problem.problem_id} id={problem.problem_id} index={index} question_text={problem.question_text} 
                             question_type={problem.question_type} sequence_no={problem.sequence_no} answer_options={problem.answer_options}
-                            correct_answer={problem.correct_answer}/>
+                            correct_answer={problem.correct_answer} case_sensitive={problem.case_sensitive} time_allowed_in_seconds={problem.time_allowed_in_seconds}
+                            ProblemsChange={handleUpdateProblemSet}/>
                         ))}
                     </ul>
                 </DndContext>:

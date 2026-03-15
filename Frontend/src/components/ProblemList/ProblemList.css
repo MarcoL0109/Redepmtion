@@ -8,3 +8,17 @@
     margin-top: 10px;
     list-style: none;
 }
+
+.SaveButton {
+    margin-bottom: 20px;
+    margin-top: 20px;
+    margin-left: 25px;
+    height: 50px;
+    font-size: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(122, 118, 118);
+    font-family: 'Courier New', Courier, monospace;
+    position: sticky;
+}
