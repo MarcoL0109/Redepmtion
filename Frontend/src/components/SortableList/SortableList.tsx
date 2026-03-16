@@ -51,6 +51,7 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
 
     const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         // Set which option is chosen first, then set the correct answer after.
+        console.log("Option text:", event.target.value);
         setSelectedOption(event.target.value);
         // console.log("option:", event.target.value)
         setCurrentCorrectAnswer(prevCorrectAnswers => ({
@@ -64,9 +65,6 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
                 "MC": event.target.value,
             }
         })
-        if (currentCorrectAnswer === correct_answer) {
-            RemoveProblemChange(id, "correct_answer");
-        }
     };
 
     const handleCorrectBlankAnswerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,9 +82,6 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
                 "Blanks": correctBlankAnswer,
             }
         })
-        if (currentCorrectAnswer === correct_answer) {
-            RemoveProblemChange(id, "correct_answer");
-        }
     }
 
 

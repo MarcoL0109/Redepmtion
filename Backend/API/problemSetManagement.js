@@ -30,6 +30,7 @@ router.post("/getProblems", async (req, res) => {
 
 router.post("/SaveUpdatedProblems", async (req, res) => {
     const {update_values} = req.body;
+    let success_counter = 0;
     /**
      * Object Structure:
      * {problem_id: {attributes: values}}
@@ -47,15 +48,27 @@ router.post("/SaveUpdatedProblems", async (req, res) => {
             if (typeof json_attribute["attributes"][attribute] === "object") {
                 const used_value = JSON.stringify(json_attribute["attributes"][attribute]);
                 key_value_array.push(`${attribute} = '${used_value}'`);
+            } else if (typeof json_attribute["attributes"][attribute] === "string") {
+                const used_value = json_attribute["attributes"][attribute]
+                key_value_array.push(`${attribute} = "${used_value}"`);
             } else {
                 const used_value = json_attribute["attributes"][attribute]
                 key_value_array.push(`${attribute} = ${used_value}`);
             }
-            
         }
         const key_value_query = key_value_array.join(", ");
         const entire_update_query = `${update_statement} ${key_value_query} ${where_caluse}`;
-        // console.log(entire_update_query);
+        try {
+            await db.query(entire_update_query);
+            success_counter++;
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({message: "Internal Server Error"});
+        }        
+    }
+
+    if (success_counter === req.body.length) {
+        res.status(200).json({message: "All problems updated succesfully"});
     }
 })
 
