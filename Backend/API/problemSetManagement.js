@@ -42,8 +42,6 @@ router.post("/SaveUpdatedProblems", async (req, res) => {
         const where_caluse = `WHERE problem_id = ${problem_id}`;
         let key_value_array = [];
         const json_attribute = JSON.parse(update_values[problem_id])
-        // console.log("JSON attribute:", json_attribute);
-        // console.log("Real attributes:", json_attribute["attributes"])
         for (const attribute in json_attribute["attributes"]) {
             if (typeof json_attribute["attributes"][attribute] === "object") {
                 const used_value = JSON.stringify(json_attribute["attributes"][attribute]);
@@ -66,10 +64,55 @@ router.post("/SaveUpdatedProblems", async (req, res) => {
             res.status(500).json({message: "Internal Server Error"});
         }        
     }
+    res.status(200).json({message: "All problems updated succesfully"});
+})
 
-    if (success_counter === req.body.length) {
-        res.status(200).json({message: "All problems updated succesfully"});
+
+router.post("/DeleteProblems", async (req, res) => {
+    const {problemsToBeDeleted} = req.body;
+    const deleteQuery = "DELETE FROM problems WHERE problem_id = ?";
+    for (let i = 0; i < problemsToBeDeleted.length; i++) {
+        try {
+            await db.query(deleteQuery, [problemsToBeDeleted[i]]);
+        } catch(error) {
+            res.status(500).json({message: "Internal Server Error"});
+        }
     }
+    res.status(200).json({message: "Problems Deleted Successfully"});
+})
+
+
+router.post("/CreateNewProblem", async (req, res) => {
+    const problemsToBeCreated = req.body.problemsToBeCreated;
+    const insertQuery = "INSERT INTO problems";
+
+    for (let i = 0; i < problemsToBeCreated.length; i++) {
+        const attributeJSON = problemsToBeCreated[i];
+        let attributeLabel = [];
+        let attrbuteValue = [];
+
+        for (const key in attributeJSON) {
+            attributeLabel.push(key);
+            if (typeof attributeJSON[key] === "object"){
+                attrbuteValue.push(`'${JSON.stringify(attributeJSON[key])}'`);
+            } else if (typeof attributeJSON[key] === "string"){
+                attrbuteValue.push(`'${attributeJSON[key]}'`);
+            } else {
+                attrbuteValue.push(attributeJSON[key]);
+            }
+        }
+        const labelQuery = `(${attributeLabel.join(", ")})`;
+        const valueQuery = `(${attrbuteValue.join(", ")})`;
+
+        const entireInsertQuery = `${insertQuery} ${labelQuery} VALUES ${valueQuery}`;
+        try {
+            await db.query(entireInsertQuery);
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({message: "Internal Server Error"});
+        }
+    }
+    res.status(200).json({message: "Success"});
 })
 
 
