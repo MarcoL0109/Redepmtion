@@ -1,0 +1,161 @@
+.handle {
+  display: flex;
+  width: 40px;
+  padding: 15px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  touch-action: none;
+  cursor: grab;
+  border-radius: 5px;
+  border: none;
+  outline: none;
+  appearance: none;
+  background-color: transparent;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.handle:hover, .handle:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.handle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0), inset 0 0 0 2.5px #4c9ffe;
+}
+
+.handle::before {
+  content: ' ';
+  display: block;
+  width: 40px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-left: 10px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z' fill='%23919eab'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.handle:hover::before, .handle:active::before {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z' fill='%236f7b88'/%3E%3C/svg%3E");
+}
+
+.btn .handle {
+  margin-block: -4px;
+}
+
+.btn .handle:hover, .btn .handle:active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn .handle::before {
+  filter: brightness(0) invert(1);
+  opacity: 0.5;
+}
+
+.btn .handle:hover::before, .btn .handle:active::before {
+  filter: brightness(0) invert(1);
+  opacity: 0.8;
+}
+
+.ProblemItem {
+    background-color: #373434;
+    opacity: 0.7;
+    width: 100%;
+    height: auto;
+    display: inline-block;
+    position: relative;
+}
+
+.ListContainer {
+    width: 100%;
+    display: flex;
+}
+
+.QuestionContentDiv {
+    padding-left: 15px;
+    font-size: 20px;
+    display: flex;
+    
+}
+
+.QuestionTextArea {
+    border: none;
+    font-size: 20px;
+    width: 100%;
+    background-color: #373434;
+    /* background-color: red; */
+    opacity: 0.7;
+}
+
+
+.ButtonContainer {
+    display: flex;
+    align-items: center;
+}
+
+.ModeSelectionContainer {
+    position: absolute;
+    right: 10px;
+}
+
+.ModeSelection {
+    font-size: 25px;
+    background-color: white;
+    color: black;
+    border-radius: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    text-align: center;
+    padding: 5px;
+    margin-left: 10px;
+}
+
+.MCAnswerOptionContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.CaseSensitiveContainer {
+    display: flex;
+    align-items: center;
+}
+
+.CaseSensitiveModeLabel {
+    padding-left: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 20px;
+}
+
+.BlankAnswerContainer {
+    margin-bottom: 15px;
+}
+
+.BlankAnswerInput {
+    width: auto;
+    height: 50px;
+    border-radius: 10px;
+    font-size: 25px;
+    margin-top: 10px;
+    background-color: white;
+    color: black;
+    font-family: 'Courier New', Courier, monospace;
+    padding-left: 10px;
+}
+
+.DeleteButtonContainer {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.DeleteButton {
+    background-color: rgb(221, 70, 70);
+    color: black;
+}
+
+
+

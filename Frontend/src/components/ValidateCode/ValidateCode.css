@@ -1,0 +1,120 @@
+.ValidateCodeBox {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    background-color: #232323;;
+    width: 300px;
+    border-radius: 5%;
+}
+
+.ValidateCodeForm {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.ValidateCodeButton {
+    padding: 10px 12px;
+    background: #E3AB13;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 25px;
+    margin: 10px 0px -15px 0px;
+    cursor: pointer;
+}
+
+.ValidateCodeButton:hover {
+    background-color: #ffbc05;
+}
+
+.ValidateCodeButton:disabled {
+    cursor: not-allowed;
+    background-color: grey;
+}
+
+.ValidateCodeButton:disabled:hover {
+    background-color: grey;
+}
+
+.ValidateCodeContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #38343B;
+}
+
+.TitleText {
+    color: white;
+    font-family: "Inika", serif;
+}
+
+.validation_code_inputs {
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    background: none;
+    color: white;
+    text-align: left;
+}
+
+.SignUpTag {
+    float: right;
+    color: white;
+}
+
+.ForgotPasswordTag {
+    color: white;
+}
+
+.AccountManagementTags {
+    margin-top: 5px;
+}
+
+.email_span {
+    color: white;
+}
+
+.email_span_container {
+    text-align: left;
+    border-bottom: 1px rgb(216, 209, 209) solid;
+}
+
+.IncorrectValidationCode {
+    color: red;
+    font-family: 'Roboto', sans-serif;
+}
+
+.IncorrectValidationCodeContainer {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+    margin-top: 20px;
+}
+
+.valdation_code_input_container {
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px rgb(216, 209, 209) solid;
+}
+
+.resend_tag_disabled {
+    white-space: nowrap;
+}
+
+.resend_tag_disabled {
+    color: grey;
+}
+
+.resend_tag_ {
+    white-space: nowrap;
+}

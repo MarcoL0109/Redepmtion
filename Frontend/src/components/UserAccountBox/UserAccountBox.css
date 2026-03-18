@@ -1,0 +1,134 @@
+.AccountInfoBox {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.5s ease-in, transform 0.5s ease-in;
+  background-color: #2A2828;
+  color: white;
+  height: 415px;
+  width: 304px;
+  position: absolute;
+  right: 40px;
+  top: 110px;
+  border-radius: 10%;
+  z-index: 1;
+  font-family: Courier, monospace;
+}
+
+
+.AccountInfoBox.show {
+  opacity: 0.7;
+  transform: translateY(0);
+}
+
+
+.BoxUserIconCircle {
+    background-color: grey;
+    width: 70px;
+    height: 70px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 100%;
+    margin-right: 15px;;
+}
+
+
+.UserNameIconContainer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: -5px;
+}
+
+
+.UsernameHeader {
+    font-size: 35px;
+    overflow: hidden; 
+    white-space: nowrap; 
+    text-overflow: ellipsis;
+}
+
+
+.SignOutButton {
+  width: 100%;
+  height: 80px;
+  position: absolute;
+  bottom: 0;
+  background-color: #2A2828;
+  opacity: 0.7;
+  font-size: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: Courier, monospace;
+}
+
+
+.SignOutButton:hover {
+  background-color: #666161;
+  border: none;
+}
+
+
+.ActionButton {
+  background-color: #666161;
+  width: 106px;
+  height: 106px;
+  border-radius: 10%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+
+.IconContainers {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding-top: 5px;
+}
+
+
+.ActionButton:hover {
+  background-color: #908888; 
+}
+
+
+.profileLabel {
+  padding-bottom: 20px;
+}
+
+
+.ActionButtonContainer {
+  display:grid;
+  grid-template-columns: 100px 100px;
+  grid-row: auto auto;
+  grid-column-gap: 15px;
+  grid-row-gap: 10px;
+  justify-self: center;
+  align-self: center;
+}
+
+
+.iconImage {
+  max-width: 65px;
+  max-height: 65px;
+}
+
+
+.collectionImage {
+  max-width: 60px;
+  max-height: 60px;
+  padding-top: 7px;
+  margin-bottom: 5px;
+}
+
+
+.historyImage {
+  max-width: 65px;
+  max-height: 65px;
+  padding-top: 5px;
+}
