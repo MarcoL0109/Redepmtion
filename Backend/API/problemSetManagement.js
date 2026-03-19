@@ -83,22 +83,26 @@ router.post("/DeleteProblems", async (req, res) => {
 
 
 router.post("/CreateNewProblem", async (req, res) => {
-    const problemsToBeCreated = req.body.problemsToBeCreated;
+    const {problemsToBeCreated} = req.body;
     const insertQuery = "INSERT INTO problems";
 
-    for (let i = 0; i < problemsToBeCreated.length; i++) {
-        const attributeJSON = problemsToBeCreated[i];
+    for (const problem_id in problemsToBeCreated) {
         let attributeLabel = [];
         let attrbuteValue = [];
-
-        for (const key in attributeJSON) {
-            attributeLabel.push(key);
-            if (typeof attributeJSON[key] === "object"){
-                attrbuteValue.push(`'${JSON.stringify(attributeJSON[key])}'`);
-            } else if (typeof attributeJSON[key] === "string"){
-                attrbuteValue.push(`'${attributeJSON[key]}'`);
-            } else {
-                attrbuteValue.push(attributeJSON[key]);
+        const json_attribute = problemsToBeCreated[problem_id]["attributes"];
+        for (const attribute in json_attribute) {
+            if (attribute !== "problem_id" && attribute !== "is_temp") {
+                attributeLabel.push(attribute);
+                if (typeof json_attribute[attribute] === "object") {
+                    const used_value = json_attribute[attribute];
+                    attrbuteValue.push(`'${JSON.stringify(used_value)}'`);
+                } else if (typeof json_attribute[attribute] === "string") {
+                    const used_value = json_attribute[attribute]
+                    attrbuteValue.push(`'${used_value}'`);
+                } else {
+                    const used_value = json_attribute[attribute]
+                    attrbuteValue.push(used_value);
+                }
             }
         }
         const labelQuery = `(${attributeLabel.join(", ")})`;

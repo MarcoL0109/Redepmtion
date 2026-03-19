@@ -6,7 +6,6 @@ import "./ProblemList.css";
 import NavBar from "../NavBar/NavBar";
 import Sortable from "../SortableList/SortableList";
 import { Mosaic, Commet } from "react-loading-indicators";
-import * as CryptoJS from 'crypto';
 
 
 interface Problem {
@@ -19,6 +18,7 @@ interface Problem {
     correct_answer: CorrectAnswer;
     case_sensitive: number,
     time_allowed_in_seconds: number,
+    is_temp ?: boolean
 }
 
 interface UserData {
@@ -75,7 +75,7 @@ function ProblemList() {
     });
     const [modifiedProblems, setModifiedProblems] = useState<{ [key: number]: { attributes: UpdatedValues } }>({});
     const [potentialDelete, setPotentialDelete] = useState<number[]>([]);
-    const [potentialCreate, setPotentialCreate] = useState<Problem[]>([]);
+    const [potentialCreate, setPotentialCreate] = useState<{ [key: number]: { attributes: UpdatedValues } }>({});
     const [isSaved, setIsSaved] = useState<boolean>(true);
     const [revertCount, setRevertCount] = useState<number>(0);
     const [index, setIndex] = useState<number>(0);
@@ -97,7 +97,6 @@ function ProblemList() {
             const fetched_problems_json = await fetch_problem_list_response.json();
             const fetched_problems_list: Problem[] = fetched_problems_json.problem_list;
             setProblemList(fetched_problems_list);
-            setIndex(fetched_problems_list[fetched_problems_list.length - 1].problem_id + 1);
         }
     };
 
@@ -169,16 +168,28 @@ function ProblemList() {
     };
 
 
-    const handleUpdateProblemSet = (problemId: number, changes: UpdatedValues) => {
-        setModifiedProblems(prev => ({
-            ...prev,
-            [problemId]: {
-                attributes: {
-                    ...(prev[problemId]?.attributes || {}),
-                    ...changes,
+    const handleUpdateProblemSet = (problemId: number, changes: UpdatedValues, is_temp: boolean) => {
+        if (!is_temp) {
+            setModifiedProblems(prev => ({
+                ...prev,
+                [problemId]: {
+                    attributes: {
+                        ...(prev[problemId]?.attributes || {}),
+                        ...changes,
+                    },
                 },
-            },
-        }));
+            }));
+        } else {
+            setPotentialCreate(prev => ({
+                ...prev,
+                [problemId]: {
+                    attributes: {
+                        ...(prev[problemId]?.attributes || {}),
+                        ...changes,
+                    },
+                },
+            }));
+        }
     }
 
 
@@ -236,32 +247,34 @@ function ProblemList() {
 
 
     const handleTempAddProblems = async () => {
-        console.log("index:", index)
         if (problem_set_id !== null)  {
             const new_problem: Problem = {"problem_set_id": problem_set_id,"problem_id": index, "sequence_no": 1, "question_type": "Multiple Choice", 
                             "question_text": "", "answer_options": {"A": "", "B": "", "C": "", "D": ""},
                             "correct_answer": {"MC": "", "Blanks": ""}, "case_sensitive": 0,
-                            "time_allowed_in_seconds": 10
+                            "time_allowed_in_seconds": 10, "is_temp": true,
                             };
             // Update the potential create for API creation call
-            setPotentialCreate(prev => [
+            setPotentialCreate(prev => ({
                 ...prev,
-                new_problem
-            ]);
+                [index]: {
+                    attributes: {
+                        ...(prev[index]?.attributes || {}),
+                        ...new_problem,
+                    },
+                },
+            }));
 
             // Set the problem list state for rendering in the frontend
             setProblemList(prev => [
                 ...prev,
                 new_problem
             ]);
-
             setIndex(prev => prev + 1);
         } 
     }
 
 
     const handleSaveAddedProblems = async () => {
-        
         const insert_problem_repsonse = await fetch(`${PROBLEM_SET_API_URL}/CreateNewProblem`, {
             method: "POST",
             headers: {
@@ -313,7 +326,7 @@ function ProblemList() {
         <div className="HomePageContainer">
             <NavBar user_data={userData} />
             {
-                ((Object.keys(modifiedProblems).length > 0 || potentialDelete.length > 0) && isSaved) &&
+                ((Object.keys(modifiedProblems).length > 0 || potentialDelete.length > 0 || Object.keys(potentialCreate).length > 0) && isSaved) &&
                 <div className="SaveRevertButtonContainer">
                     <button className="SaveButton" onClick={handleSave}>Save</button>
                     <button className="RevertButton" onClick={handleRevert}>Revert</button>
@@ -322,7 +335,7 @@ function ProblemList() {
             }
 
             {
-                ((Object.keys(modifiedProblems).length > 0 || potentialDelete.length > 0) && !isSaved) &&
+                ((Object.keys(modifiedProblems).length > 0 || potentialDelete.length > 0 || Object.keys(potentialCreate).length > 0) && !isSaved) &&
                 <Commet color="#59acef" size="small" />
             }
             
@@ -337,6 +350,7 @@ function ProblemList() {
                                     <Sortable key={problem.problem_id} id={problem.problem_id} index={index} question_text={problem.question_text} 
                                     question_type={problem.question_type} sequence_no={problem.sequence_no} answer_options={problem.answer_options}
                                     correct_answer={problem.correct_answer} case_sensitive={problem.case_sensitive} time_allowed_in_seconds={problem.time_allowed_in_seconds}
+                                    is_temp={problem.is_temp ?? false}
                                     ProblemsChange={handleUpdateProblemSet}
                                     RemoveProblemChange={handleRemoveAttribute}
                                     PotentialDelete={handlePotentialDelete}

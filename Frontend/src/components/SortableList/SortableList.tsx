@@ -8,10 +8,10 @@ import { AnswerOptions, CorrectAnswer, UpdatedValues } from '../ProblemList/Prob
 
 
 
-function Sortable({ id, index, question_text, question_type, sequence_no, answer_options, correct_answer, case_sensitive, time_allowed_in_seconds, ProblemsChange, RemoveProblemChange, PotentialDelete, RevertCount }: 
+function Sortable({ id, index, question_text, question_type, sequence_no, answer_options, correct_answer, case_sensitive, time_allowed_in_seconds, is_temp, ProblemsChange, RemoveProblemChange, PotentialDelete, RevertCount }: 
     { id: number; index: number; question_text: string, question_type: string, sequence_no: number,
-        answer_options: AnswerOptions, correct_answer: CorrectAnswer, case_sensitive: number, time_allowed_in_seconds: number,
-        ProblemsChange:( id: number, change: UpdatedValues) => void,
+        answer_options: AnswerOptions, correct_answer: CorrectAnswer, case_sensitive: number, time_allowed_in_seconds: number, is_temp: boolean,
+        ProblemsChange:( id: number, change: UpdatedValues, is_temp: boolean) => void,
         RemoveProblemChange: (id: number, attribute: keyof UpdatedValues) => void,
         PotentialDelete: (id: number) => void, RevertCount: number}) {
     const [element, setElement] = useState<Element | null>(null);
@@ -63,7 +63,7 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
                 ...prevCorrectAnswers,
                 "MC": event.target.value,
             }
-        })
+        }, is_temp)
     };
 
     const handleCorrectBlankAnswerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,14 +80,14 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
                 ...prevCorrectAnswer,
                 "Blanks": correctBlankAnswer,
             }
-        })
+        }, is_temp)
     }
 
 
     const handleModeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedMode = event.target.value;
         setMode(selectedMode);
-        ProblemsChange(id, {"question_type": selectedMode})
+        ProblemsChange(id, {"question_type": selectedMode}, is_temp)
         if (selectedMode === question_type) {
             RemoveProblemChange(id, "question_type");
         }
@@ -98,7 +98,7 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
         const checked = event.target.checked;
         const numeric_checked = checked === false ? 0 : 1
         setIsCaseSensitive(numeric_checked);
-        ProblemsChange(id, {"case_sensitive": numeric_checked});
+        ProblemsChange(id, {"case_sensitive": numeric_checked}, is_temp);
         if (numeric_checked === case_sensitive) {
             RemoveProblemChange(id, "case_sensitive");
         }
@@ -109,7 +109,7 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
         const selected_seconds = event.target.value;
         const formatted_seconds = parseInt(selected_seconds.replace(/s$/, ''), 10);
         setTimeAllow(formatted_seconds);
-        ProblemsChange(id, {"time_allowed_in_seconds": formatted_seconds});
+        ProblemsChange(id, {"time_allowed_in_seconds": formatted_seconds}, is_temp);
         if (formatted_seconds === time_allowed_in_seconds) {
             RemoveProblemChange(id, "time_allowed_in_seconds");
         }
@@ -118,7 +118,7 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
 
     const handleQuestionTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         const new_question_text = event.target.value;
-        ProblemsChange(id, {"question_text": new_question_text});
+        ProblemsChange(id, {"question_text": new_question_text}, is_temp);
         if (new_question_text === question_text) {
             RemoveProblemChange(id, "question_text");
         }
@@ -142,7 +142,7 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
                 ...current_answer_options,
                 [option_label]: new_option_text
             }
-        });
+        }, is_temp);
     }
 
 
