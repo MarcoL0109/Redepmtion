@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 
 
 interface MultipleChoiceContainerProps {
+    problem_id: number;
     option_label: string;
     option_text: string;
     selectedOption: string;
@@ -12,6 +13,7 @@ interface MultipleChoiceContainerProps {
 }
 
 const MultipleChoiceContainer: React.FC<MultipleChoiceContainerProps> = ({
+    problem_id,
     option_label,
     option_text,
     selectedOption,
@@ -20,15 +22,17 @@ const MultipleChoiceContainer: React.FC<MultipleChoiceContainerProps> = ({
         }) => {
 
             return (
+                
                 <div className="Options">
+                    {/* {`${option_label}-${problem_id}`} */}
                     <input
                         type="radio"
-                        id={option_label}
+                        id={`${option_label}-${problem_id}`}
                         value={option_label}
                         checked={selectedOption === option_label}
                         onChange={onChange}
                     />
-                    <label className="OptionLabel" htmlFor={option_label}>
+                    <label className="OptionLabel" htmlFor={`${option_label}-${problem_id}`}>
                         {option_label}.
                         <TextareaAutosize
                             placeholder={`Option Text For ${option_label}`}

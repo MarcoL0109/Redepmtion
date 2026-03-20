@@ -1,8 +1,10 @@
 {
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/helpers": "^0.3.2",
     "@dnd-kit/react": "^0.3.2",
     "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
@@ -20,7 +22,9 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-fontawesome": "^1.7.1",
+    "react-loading-indicator": "^1.0.2",
     "react-loading-indicators": "^1.0.1",
+    "react-textarea-autosize": "^8.5.9",
     "redis": "^5.11.0",
     "uuidv4": "^6.2.13"
   },

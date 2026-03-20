@@ -418,3 +418,4 @@ FodyWeavers.xsd
 *.msp
 Backend/.DS_Store
 .DS_Store
+Backend/API/.Rhistory

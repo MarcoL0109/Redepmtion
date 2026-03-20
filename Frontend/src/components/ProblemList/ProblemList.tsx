@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { DndContext, DragEndEvent } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
+import { closestCorners, DndContext, DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import "./ProblemList.css";
 import NavBar from "../NavBar/NavBar";
 import Sortable from "../SortableList/SortableList";
@@ -82,6 +82,7 @@ function ProblemList() {
 
 
     const fetch_problem_list = async () => {
+        setIsLoaded(false);
         const fetch_problem_list_response = await fetch(`${PROBLEM_SET_API_URL}/getProblems`, {
             method: "POST",
             headers: {
@@ -97,6 +98,7 @@ function ProblemList() {
             const fetched_problems_json = await fetch_problem_list_response.json();
             const fetched_problems_list: Problem[] = fetched_problems_json.problem_list;
             setProblemList(fetched_problems_list);
+            setIsLoaded(true);
         }
     };
 
@@ -156,12 +158,10 @@ function ProblemList() {
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-
         if (over) {
             setProblemList((current) => {
-                const oldIndex = current.findIndex(problem => problem.problem_id === active.id);
-                const newIndex = current.findIndex(problem => problem.problem_id === over.id);
-                
+                const oldIndex = current.findIndex(problem => problem.problem_id === Number(active.id));
+                const newIndex = current.findIndex(problem => problem.problem_id === Number(over.id));                
                 return arrayMove(current, oldIndex, newIndex);
             });
         }
@@ -294,13 +294,12 @@ function ProblemList() {
     
     const handleSave = async () => {
         // Save order: insert -> update -> delete
-        // Insert API lives here
         setIsSaved(false);
         await handleSaveAddedProblems();
         await handleSaveUpdate();
         await handleSaveDelete();
-        await fetch_problem_list();
         setIsSaved(true);
+        await fetch_problem_list();
     }
 
 
@@ -312,12 +311,14 @@ function ProblemList() {
     }
 
 
-    const handleRevert = () => {
-        // Empty all the save modify object to prevent from writing to database on future updates
+    const handleRevert = async () => {
+        // The revert does not work for resetting the page for newly created problems, because those problems are in the problemlist state
         setIsSaved(false);
+        setPotentialCreate({});
         setModifiedProblems({});
         setPotentialDelete([]);
-        setRevertCount(prev => prev ^ 1);
+        await fetch_problem_list();
+        setRevertCount(prev => prev ^ 1); // I do not know why this is needed in the useEffect
         setIsSaved(true);
     }
 
@@ -343,21 +344,32 @@ function ProblemList() {
                 isLoaded ? 
                 (
                     <div className="ProblemListContainer">
-                        <DndContext onDragEnd={handleDragEnd}>
-                            <ul className="ProblemList">
-                                {problemList.map((problem, index) => (
+                        <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+                            <SortableContext items={problemList.map(p => String(p.problem_id))} strategy={verticalListSortingStrategy}>
+                                <ul className="ProblemList">
+                                {problemList.map((problem, index) =>
                                     !potentialDelete.includes(problem.problem_id) ? (
-                                    <Sortable key={problem.problem_id} id={problem.problem_id} index={index} question_text={problem.question_text} 
-                                    question_type={problem.question_type} sequence_no={problem.sequence_no} answer_options={problem.answer_options}
-                                    correct_answer={problem.correct_answer} case_sensitive={problem.case_sensitive} time_allowed_in_seconds={problem.time_allowed_in_seconds}
-                                    is_temp={problem.is_temp ?? false}
-                                    ProblemsChange={handleUpdateProblemSet}
-                                    RemoveProblemChange={handleRemoveAttribute}
-                                    PotentialDelete={handlePotentialDelete}
-                                    RevertCount={revertCount}/>
-                                    ): null)
+                                    <Sortable
+                                        key={String(problem.problem_id)}
+                                        id={problem.problem_id}
+                                        index={index}
+                                        question_text={problem.question_text}
+                                        question_type={problem.question_type}
+                                        sequence_no={problem.sequence_no}
+                                        answer_options={problem.answer_options}
+                                        correct_answer={problem.correct_answer}
+                                        case_sensitive={problem.case_sensitive}
+                                        time_allowed_in_seconds={problem.time_allowed_in_seconds}
+                                        is_temp={problem.is_temp ?? false}
+                                        ProblemsChange={handleUpdateProblemSet}
+                                        RemoveProblemChange={handleRemoveAttribute}
+                                        PotentialDelete={handlePotentialDelete}
+                                        RevertCount={revertCount}
+                                    />
+                                    ) : null
                                 )}
-                            </ul>
+                                </ul>
+                            </SortableContext>
                         </DndContext>
                         <div className="AddDivButtonContainer">
                             <div className="circle" onClick={handleTempAddProblems}>
