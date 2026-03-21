@@ -50,6 +50,7 @@ export interface UpdatedValues {
     "question_text" ?: string,
     "answer_options" ?: AnswerOptions,
     "correct_answer" ?: CorrectAnswer,
+    "sequence_no" ?: number,
     "case_sensitive" ?: number,
     "time_allowed_in_seconds" ?: number,
 }
@@ -65,6 +66,7 @@ function ProblemList() {
 
     const [displayError, setDisplayError] = useState<boolean>(false);
     const [problemList, setProblemList] = useState<Problem[]>([]);
+    const [snapShotProblemList, setSnapShotProblemList] = useState<Problem[]>([]);
     const [isLoaded, setIsLoaded] = useState<boolean>(true);   
     const [userData, setUserData] = useState<UserData>({
         username: "",
@@ -76,9 +78,11 @@ function ProblemList() {
     const [modifiedProblems, setModifiedProblems] = useState<{ [key: number]: { attributes: UpdatedValues } }>({});
     const [potentialDelete, setPotentialDelete] = useState<number[]>([]);
     const [potentialCreate, setPotentialCreate] = useState<{ [key: number]: { attributes: UpdatedValues } }>({});
+    const [sequenceMap, setSequenceMap] = useState<Record<number, number>>({});
     const [isSaved, setIsSaved] = useState<boolean>(true);
     const [revertCount, setRevertCount] = useState<number>(0);
     const [index, setIndex] = useState<number>(0);
+    const [maxSequence, setMaxSequence] = useState<number>(0);
 
 
     const fetch_problem_list = async () => {
@@ -98,7 +102,17 @@ function ProblemList() {
             const fetched_problems_json = await fetch_problem_list_response.json();
             const fetched_problems_list: Problem[] = fetched_problems_json.problem_list;
             setProblemList(fetched_problems_list);
+            setSnapShotProblemList(fetched_problems_list);
             setIsLoaded(true);
+            setMaxSequence(fetched_problems_list[fetched_problems_list.length - 1].sequence_no + 1);
+            setSequenceMap(prev => {
+                const next = { ...prev };
+                for (let i = 0; i < fetched_problems_list.length; i++) {
+                    const id = fetched_problems_list[i].problem_id;
+                    next[id] = fetched_problems_list[i].sequence_no;
+                }
+                return next;
+            });
         }
     };
 
@@ -158,13 +172,48 @@ function ProblemList() {
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
-        if (over) {
-            setProblemList((current) => {
-                const oldIndex = current.findIndex(problem => problem.problem_id === Number(active.id));
-                const newIndex = current.findIndex(problem => problem.problem_id === Number(over.id));                
-                return arrayMove(current, oldIndex, newIndex);
+        if (!over) return;
+
+        setProblemList((current) => {
+            const oldIndex = current.findIndex(p => p.problem_id === Number(active.id));
+            const newIndex = current.findIndex(p => p.problem_id === Number(over.id));
+
+            if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+                return current;
+            }
+            const newList = arrayMove(current, oldIndex, newIndex);
+            const min_index = Math.min(oldIndex, newIndex);
+            const max_index = Math.max(oldIndex, newIndex);
+
+            setModifiedProblems(prev => {
+                let start = 1e9;
+                for (let i = min_index; i <= max_index; i++) {
+                    start = Math.min(newList[i].sequence_no, start);
+                }
+                const next = { ...prev };
+                for (let i = min_index; i <= max_index; i++) {
+                    const key = newList[i].problem_id;
+                    next[key] = {
+                        ...(next[key] || {}),
+                        attributes: {
+                            ...(next[key]?.attributes || prev[key]?.attributes || {}),
+                            sequence_no: start,
+                        },
+                    };
+                    start++;
+                }
+                // Need to remove records that went back to their original places, save db write time
+                for (const problem_id in next) {
+                    const attributes = next[problem_id]["attributes"];
+                    if ("sequence_no" in attributes && attributes["sequence_no"] === sequenceMap[Number(problem_id)]) {
+                        delete attributes["sequence_no"];
+                    }
+                }
+                return next;
             });
-        }
+            
+            return newList;
+        });
     };
 
 
@@ -248,7 +297,7 @@ function ProblemList() {
 
     const handleTempAddProblems = async () => {
         if (problem_set_id !== null)  {
-            const new_problem: Problem = {"problem_set_id": problem_set_id,"problem_id": index, "sequence_no": 1, "question_type": "Multiple Choice", 
+            const new_problem: Problem = {"problem_set_id": problem_set_id,"problem_id": index, "sequence_no": maxSequence, "question_type": "Multiple Choice", 
                             "question_text": "", "answer_options": {"A": "", "B": "", "C": "", "D": ""},
                             "correct_answer": {"MC": "", "Blanks": ""}, "case_sensitive": 0,
                             "time_allowed_in_seconds": 10, "is_temp": true,
@@ -270,6 +319,7 @@ function ProblemList() {
                 new_problem
             ]);
             setIndex(prev => prev + 1);
+            setMaxSequence(prev => prev + 1);
         } 
     }
 
@@ -311,14 +361,14 @@ function ProblemList() {
     }
 
 
-    const handleRevert = async () => {
-        // The revert does not work for resetting the page for newly created problems, because those problems are in the problemlist state
+    const handleRevert = () => {
         setIsSaved(false);
         setPotentialCreate({});
         setModifiedProblems({});
         setPotentialDelete([]);
-        await fetch_problem_list();
-        setRevertCount(prev => prev ^ 1); // I do not know why this is needed in the useEffect
+        setProblemList(snapShotProblemList);
+        setRevertCount(prev => prev ^ 1);
+        setMaxSequence(problemList[problemList.length - 1].sequence_no + 1)
         setIsSaved(true);
     }
 

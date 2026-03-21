@@ -82,9 +82,7 @@ function HomePage() {
                 setHasFetched(true);
             }
         }
-
         checkUserValidation();
-        
     }, []);
 
 
