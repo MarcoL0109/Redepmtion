@@ -368,7 +368,7 @@ function ProblemList() {
         setPotentialDelete([]);
         setProblemList(snapShotProblemList);
         setRevertCount(prev => prev ^ 1);
-        setMaxSequence(problemList[problemList.length - 1].sequence_no + 1)
+        setMaxSequence(snapShotProblemList[problemList.length - 1].sequence_no + 1)
         setIsSaved(true);
     }
 
