@@ -15,7 +15,6 @@ function Sortable({ id, index, question_text, question_type, sequence_no, answer
         ProblemsChange:( id: number, change: UpdatedValues, is_temp: boolean) => void,
         RemoveProblemChange: (id: number, attribute: keyof UpdatedValues) => void,
         PotentialDelete: (id: number) => void, RevertCount: number}) {
-    const handleRef = useRef<HTMLButtonElement | null>(null);
     const [mode, setMode] = useState<string>("Multiple Choice");
     const [selectedOption, setSelectedOption] = useState<string>("");
     const [blankAnswer, setBlankAnswer] = useState<string>("");

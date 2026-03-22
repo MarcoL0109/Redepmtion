@@ -225,7 +225,7 @@ router.post("/ResetPassword", async (req, res) => {
 
 router.post("/getUserInfo", async (req, res) => {
     const { user_id } = req.body;
-    const [user_info] = await db.query("SELECT create_date, email, user_icon, username, user_icon FROM user_info WHERE user_id = ?", [user_id]);
+    const [user_info] = await db.query("SELECT user_id, create_date, email, user_icon, username, user_icon FROM user_info WHERE user_id = ?", [user_id]);
     return res.json({userData: user_info[0]})
 })
 

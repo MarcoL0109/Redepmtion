@@ -3,7 +3,24 @@ import NavBar from "../NavBar/NavBar";
 import ProblemSetCard from "../ProblemSetCard/ProblemSetCard";
 import { Mosaic } from 'react-loading-indicators';
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+
+
+export interface ProblemSetModificationMap {
+    "problem_set_title" ?: string,
+    "problem_set_description" ?: string,
+}
+
+interface ProblemSet {
+    "problem_set_id": number,
+    "problem_set_title": string,
+    "problem_set_description": string,
+    "problem_counts": number,
+    "created_by": number,
+    "created_at"?: string,
+    "last_update_at"?: string,
+    "is_temp" ?: boolean,
+}
 
 
 function HomePage() {
@@ -19,7 +36,7 @@ function HomePage() {
         created_at: "",
         user_icon: "",
     });
-    const [problemSets, setProblemSets] = useState([
+    const [problemSets, setProblemSets] = useState<ProblemSet[]>([
         {
         problem_set_id: -1, problem_set_title: "", problem_set_description: "", 
         problem_counts: -1, created_by: -1, created_at: "", 
@@ -27,7 +44,34 @@ function HomePage() {
         }
     ])
     const [isloaded, setIsLoaded] = useState<boolean>(false);
-    const [hasFetched, setHasFetched] = useState(false);
+    const [editMode, setEditMode] = useState<boolean>(false);
+    const [problemSetModMap, setProblemSetModMap] = useState<{[key: number]: {attributes: ProblemSetModificationMap}}>({});
+    const [potentialCreateProblemSet, setpotentialCreateProblemSet] = useState<{[key: number]: {attributes: ProblemSetModificationMap}}>({});
+    const [snapShotProblemSet, setSnapShotProblemSet] = useState([
+        {
+        problem_set_id: -1, problem_set_title: "", problem_set_description: "", 
+        problem_counts: -1, created_by: -1, created_at: "", 
+        last_update_at: ""
+        }
+    ])
+    const [createIndex, setCreateIndex] = useState<number>(0);
+
+
+    const fetch_problem_sets = async (session_user_id: number) => {
+        const fecth_problem_set_response = await fetch(`${PROBLEM_SET_API_URL}/getProblemSets`, {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({user_id: session_user_id}),
+                })
+        const fetched_problem_sets_json = await fecth_problem_set_response.json();
+        const fetched_problem_sets_data = fetched_problem_sets_json.problem_sets;
+        setProblemSets(fetched_problem_sets_data);
+        setSnapShotProblemSet(fetched_problem_sets_data);
+        setIsLoaded(true);
+    }
 
     
     useEffect(() => {
@@ -41,7 +85,6 @@ function HomePage() {
             if (session_user_id === null) {
                 nevagate("/SignIn");
             } else {
-
                 const get_user_data_response = await fetch(`${USER_API_URL}/getUserInfo`, {
                     method: "POST",
                     headers: {
@@ -67,23 +110,119 @@ function HomePage() {
                     created_at: user_data_content.create_date.toString(),
                     user_icon: image_url,
                 })
-                const fecth_problem_set_response = await fetch(`${PROBLEM_SET_API_URL}/getProblemSets`, {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: "include",
-                    body: JSON.stringify({user_id: session_user_id}),
-                })
-                const fetched_problem_sets_json = await fecth_problem_set_response.json();
-                const fetched_problem_sets_data = fetched_problem_sets_json.problem_sets;
-                setProblemSets(fetched_problem_sets_data);
-                setIsLoaded(true);
-                setHasFetched(true);
+                await fetch_problem_sets(session_user_id);
             }
         }
         checkUserValidation();
     }, []);
+
+
+    const handleEditMode = async () => {
+        setEditMode(true);
+    }
+
+
+    const handleSaveUpdate = async () => {
+        const update_problem_set_status = await fetch(`${PROBLEM_SET_API_URL}/UpdateProblemSets`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({problemSetModMap})
+        })
+
+        if (update_problem_set_status.status === 500) {
+            console.log("Internal Server Error");
+        } else {
+            console.log(userData);
+            await fetch_problem_sets(userData.user_id);
+        }
+    }
+
+
+    const handleSaveCreate = async () => {
+        const create_problem_set_status = await fetch(`${PROBLEM_SET_API_URL}/CreateNewProblemSet`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({potentialCreateProblemSet})
+        })
+
+        if (create_problem_set_status.status === 200) {
+            await fetch_problem_sets(userData.user_id);
+        } else {
+           console.log("Internal Server Error") ;
+        }
+    }
+
+
+    const handleSave = async () => {
+        setEditMode(false);
+        await handleSaveCreate();
+        await handleSaveUpdate();
+    }
+
+
+    const handleAddProblemSet = async () => {
+        setEditMode(true);
+        const new_problem_set: ProblemSet = {
+            "problem_set_id": createIndex,
+            "problem_set_title": "",
+            "problem_set_description": "",
+            "problem_counts": 0,
+            "created_by": userData.user_id,
+            "is_temp": true,
+        };
+        setProblemSets(prev => [
+            ...prev,
+            new_problem_set
+        ]);
+        setpotentialCreateProblemSet(prev => ({
+            ...prev,
+            [createIndex]: {
+                attributes: {
+                    ...(prev[createIndex]?.attributes || {}),
+                    ...new_problem_set,
+                },
+            },
+        }));
+        setCreateIndex(prev => prev + 1);
+    };
+
+
+    const handleCancel = () => {
+        setProblemSets(snapShotProblemSet);
+        setEditMode(false);
+    }
+
+
+    const handleProblemSetChange = (problem_set_id: number, change: ProblemSetModificationMap, is_temp: boolean) => {
+        if (!is_temp) {
+            setProblemSetModMap(prev => ({
+                ...prev,
+                [problem_set_id]: {
+                    attributes: {
+                        ...(prev[problem_set_id]?.attributes || {}),
+                        ...change,
+                    }
+                }
+            }))
+        }
+        else {
+            setpotentialCreateProblemSet(prev => ({
+                ...prev,
+                [problem_set_id]: {
+                    attributes: {
+                        ...(prev[problem_set_id]?.attributes || {}),
+                        ...change,
+                    }
+                }
+            }))
+        }
+    }
 
 
     return (
@@ -91,13 +230,29 @@ function HomePage() {
             <NavBar user_data={userData}/>
             {
                 isloaded ?
+                <div className="">
+                    {
+                        editMode ?
+                        <div className="SaveRevertButtonContainer">
+                            <button className="SaveButton" onClick={handleSave}>Save</button>
+                            <button className="RevertButton" onClick={handleCancel}>Cancel</button>
+                        </div>:
+                        <div className="SaveRevertButtonContainer">
+                            <button className="SaveButton" onClick={handleEditMode}>Edit</button>
+                        </div>
+                    }
+                </div> :
+                <div></div>
+            }
+            {
+                isloaded ?
                 <div className="problemSetCardsContainer">
                     {
-                        problemSets.map(problem_set => (
-                            <div key={problem_set.problem_set_id}>
-                                <ProblemSetCard problem_set={problem_set}/>
-                            </div>
-                        ))
+                    problemSets.map(problem_set => (
+                        <div key={problem_set.problem_set_id}>
+                            <ProblemSetCard problem_set={problem_set} editMode={editMode} handleChange={handleProblemSetChange} is_temp={problem_set.is_temp ?? false}/>
+                        </div>
+                    ))
                     }
                 </div> :
                 <div className="LoadingAnimationContainer">
@@ -107,7 +262,7 @@ function HomePage() {
             {
                 isloaded && 
                 <div className="AddDivButtonContainer">
-                    <div className="circle">
+                    <div className="circle" onClick={handleAddProblemSet}>
                         <div className="add-symbol">+</div>
                     </div>
                 </div>

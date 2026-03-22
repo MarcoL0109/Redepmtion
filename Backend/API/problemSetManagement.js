@@ -18,7 +18,7 @@ router.post("/getProblemSets", async (req, res) => {
 
 router.post("/getProblems", async (req, res) => {
     const {problem_set_id} = req.body;
-    const fetch_problem_query = "SELECT * FROM problems WHERE problem_set_id = ?";
+    const fetch_problem_query = "SELECT * FROM problems WHERE problem_set_id = ? ORDER BY sequence_no";
     try {
         const [problems] = await db.query(fetch_problem_query, [problem_set_id]);
         return res.status(200).json({problem_list: problems});
@@ -44,7 +44,8 @@ router.post("/SaveUpdatedProblems", async (req, res) => {
         const json_attribute = JSON.parse(update_values[problem_id])
         for (const attribute in json_attribute["attributes"]) {
             if (typeof json_attribute["attributes"][attribute] === "object") {
-                const used_value = JSON.stringify(json_attribute["attributes"][attribute]);
+                let used_value = JSON.stringify(json_attribute["attributes"][attribute]);
+                used_value = used_value.replace(/'/g, "''");
                 key_value_array.push(`${attribute} = '${used_value}'`);
             } else if (typeof json_attribute["attributes"][attribute] === "string") {
                 const used_value = json_attribute["attributes"][attribute]
@@ -95,10 +96,12 @@ router.post("/CreateNewProblem", async (req, res) => {
                 attributeLabel.push(attribute);
                 if (typeof json_attribute[attribute] === "object") {
                     const used_value = json_attribute[attribute];
-                    attrbuteValue.push(`'${JSON.stringify(used_value)}'`);
+                    let cleaned_used_value = JSON.stringify(used_value)
+                    cleaned_used_value = used_value.replace(/'/g, "''");
+                    attrbuteValue.push(`'${cleaned_used_value}'`);
                 } else if (typeof json_attribute[attribute] === "string") {
                     const used_value = json_attribute[attribute]
-                    attrbuteValue.push(`'${used_value}'`);
+                    attrbuteValue.push(`"${used_value}"`);
                 } else {
                     const used_value = json_attribute[attribute]
                     attrbuteValue.push(used_value);
@@ -117,6 +120,60 @@ router.post("/CreateNewProblem", async (req, res) => {
         }
     }
     res.status(200).json({message: "Success"});
+})
+
+
+router.post("/UpdateProblemSets", async (req, res) => {
+    const problem_set_change_mapping = req.body.problemSetModMap;
+    const update_statement = `UPDATE problem_sets SET`
+    for (const problem_set_id in problem_set_change_mapping) {
+        const nums_problem_set_id = Number(problem_set_id);
+        const where_statement = `WHERE problem_set_id = ${nums_problem_set_id}`;
+        let key_value_pair_list = []
+        for (const key in problem_set_change_mapping[nums_problem_set_id]["attributes"]) {
+            const curr_pair = `${key} = "${problem_set_change_mapping[nums_problem_set_id]["attributes"][key]}"`
+            key_value_pair_list.push(curr_pair);
+        }
+        const update_values_statement = key_value_pair_list.join(", ");
+        const entire_update_query = `${update_statement} ${update_values_statement} ${where_statement}`
+        try {
+            await db.query(entire_update_query);
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({message: "Internal Sever Error"});
+        }
+    }
+    res.status(200).json({message: "All problem set updated"});
+})
+
+
+router.post("/CreateNewProblemSet", async (req, res) => {
+    const problems_to_be_created = req.body.potentialCreateProblemSet;
+    const insert_statement = "INSERT INTO problem_sets"
+    for (const problem_id in problems_to_be_created) {
+        let key_list = [], value_list = [];
+        const attributes = problems_to_be_created[problem_id]['attributes'];
+        for (const attribute in attributes) {
+            if (attribute != "problem_set_id" && attribute != "is_temp") {
+                key_list.push(attribute);
+                const use_val = typeof problems_to_be_created[problem_id]['attributes'][attribute] === "string" ? 
+                `"${problems_to_be_created[problem_id]['attributes'][attribute]}"` :
+                `${problems_to_be_created[problem_id]['attributes'][attribute]}`
+                value_list.push(use_val);
+
+            }
+        }
+        const joined_keys = `(${key_list.join(", ")})`;
+        const joined_values = `(${value_list.join(", ")})`;
+        const entire_insert_statement = `${insert_statement} ${joined_keys} VALUES ${joined_values}`;
+        try {
+            await db.query(entire_insert_statement);
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({message: "Internal Server Error"});
+        }
+    }
+    res.status(200).json({message: "Problem Sets Created Successfully"});
 })
 
 
