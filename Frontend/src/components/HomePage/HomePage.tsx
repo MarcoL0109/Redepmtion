@@ -46,7 +46,7 @@ function HomePage() {
     const [isloaded, setIsLoaded] = useState<boolean>(false);
     const [editMode, setEditMode] = useState<boolean>(false);
     const [problemSetModMap, setProblemSetModMap] = useState<{[key: number]: {attributes: ProblemSetModificationMap}}>({});
-    const [potentialCreateProblemSet, setpotentialCreateProblemSet] = useState<{[key: number]: {attributes: ProblemSetModificationMap}}>({});
+    const [potentialCreateProblemSet, setPotentialCreateProblemSet] = useState<{[key: number]: {attributes: ProblemSetModificationMap}}>({});
     const [snapShotProblemSet, setSnapShotProblemSet] = useState([
         {
         problem_set_id: -1, problem_set_title: "", problem_set_description: "", 
@@ -55,6 +55,9 @@ function HomePage() {
         }
     ])
     const [createIndex, setCreateIndex] = useState<number>(0);
+    const [deleteMode, setDeleteMode] = useState<boolean>(false);
+    const [potentialDeleteList, setPotentialDeleteList] = useState<number[]>([]);
+    const [clearToggle, setClearToggle] = useState<number>(0);
 
 
     const fetch_problem_sets = async (session_user_id: number) => {
@@ -135,8 +138,7 @@ function HomePage() {
         if (update_problem_set_status.status === 500) {
             console.log("Internal Server Error");
         } else {
-            console.log(userData);
-            await fetch_problem_sets(userData.user_id);
+            setProblemSetModMap({});
         }
     }
 
@@ -152,17 +154,56 @@ function HomePage() {
         })
 
         if (create_problem_set_status.status === 200) {
-            await fetch_problem_sets(userData.user_id);
+            setPotentialCreateProblemSet({});
         } else {
            console.log("Internal Server Error") ;
         }
     }
 
 
+    const handleSaveDelete = async () => {
+        const delete_problems_response = await fetch(`${PROBLEM_SET_API_URL}/DeleteProblemSets`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({potentialDeleteList})
+        })
+
+        if (delete_problems_response.status === 200) {
+            setPotentialDeleteList([]);
+        } else {
+            console.log("Internal Server Error");
+        }
+    }
+
+
     const handleSave = async () => {
-        setEditMode(false);
         await handleSaveCreate();
         await handleSaveUpdate();
+        await handleSaveDelete();
+        await fetch_problem_sets(userData.user_id);
+        setEditMode(false);
+        setDeleteMode(false);
+    }
+
+
+    const handleDelete = async () => {
+        setDeleteMode(true);
+    }
+
+
+    const handleAddPotentialDelete = (problem_set_id: number) => {
+        setPotentialDeleteList(prev => [
+            ...prev,
+            problem_set_id
+        ])
+    }
+
+
+    const handleRemovePotentialDelete = (problem_set_id: number) => {
+        setPotentialDeleteList(prev => prev.filter(id => id != problem_set_id));
     }
 
 
@@ -180,7 +221,7 @@ function HomePage() {
             ...prev,
             new_problem_set
         ]);
-        setpotentialCreateProblemSet(prev => ({
+        setPotentialCreateProblemSet(prev => ({
             ...prev,
             [createIndex]: {
                 attributes: {
@@ -194,8 +235,13 @@ function HomePage() {
 
 
     const handleCancel = () => {
+        setPotentialDeleteList([]);
+        setPotentialCreateProblemSet({});
+        setProblemSetModMap({});
+        setClearToggle(prev => prev ^ 1)
         setProblemSets(snapShotProblemSet);
         setEditMode(false);
+        setDeleteMode(false);
     }
 
 
@@ -212,7 +258,7 @@ function HomePage() {
             }))
         }
         else {
-            setpotentialCreateProblemSet(prev => ({
+            setPotentialCreateProblemSet(prev => ({
                 ...prev,
                 [problem_set_id]: {
                     attributes: {
@@ -232,17 +278,18 @@ function HomePage() {
                 isloaded ?
                 <div className="">
                     {
-                        editMode ?
+                        editMode || deleteMode ?
                         <div className="SaveRevertButtonContainer">
                             <button className="SaveButton" onClick={handleSave}>Save</button>
                             <button className="RevertButton" onClick={handleCancel}>Cancel</button>
                         </div>:
                         <div className="SaveRevertButtonContainer">
                             <button className="SaveButton" onClick={handleEditMode}>Edit</button>
+                            <button className="HomePageDeleteButton" onClick={handleDelete}>Delete</button>
                         </div>
                     }
                 </div> :
-                <div></div>
+                ""
             }
             {
                 isloaded ?
@@ -250,7 +297,11 @@ function HomePage() {
                     {
                     problemSets.map(problem_set => (
                         <div key={problem_set.problem_set_id}>
-                            <ProblemSetCard problem_set={problem_set} editMode={editMode} handleChange={handleProblemSetChange} is_temp={problem_set.is_temp ?? false}/>
+                            <ProblemSetCard problem_set={problem_set} editMode={editMode} deleteMode={deleteMode} is_temp={problem_set.is_temp ?? false}
+                            handleChange={handleProblemSetChange}
+                            handleAddPotentialDeleteProblems={handleAddPotentialDelete}
+                            handleRemovePotentialDeleteProblems={handleRemovePotentialDelete}
+                            handleClearToggle={clearToggle}/>
                         </div>
                     ))
                     }

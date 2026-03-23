@@ -14,20 +14,39 @@ interface ProblemCard {
         last_update_at?: string
     },
     editMode: boolean,
-    is_temp: boolean
+    deleteMode: boolean,
+    is_temp: boolean,
+    handleClearToggle: number,
     handleChange: (id: number, change: ProblemSetModificationMap, is_temp: boolean) => void
+    handleAddPotentialDeleteProblems: (id: number) => void
+    handleRemovePotentialDeleteProblems: (id: number) => void
 }
 
 
-function ProblemSetCard({problem_set, editMode, is_temp, handleChange}: ProblemCard) {
+function ProblemSetCard({problem_set, editMode, deleteMode, is_temp, handleClearToggle, handleChange, handleAddPotentialDeleteProblems, handleRemovePotentialDeleteProblems}: ProblemCard) {
     const navigate = useNavigate()
+    const [toggle, setToggle] = useState<number>(0);
 
 
     const handleonClick = () => {
-        if (!editMode) {
+        if (!editMode && !deleteMode) {
             navigate("/ProblemList", { state: { problem_set_id: problem_set.problem_set_id} });
         }
     }
+
+
+    useEffect(() => {
+        setToggle(0);
+    }, [handleClearToggle])
+
+
+    useEffect(() => {
+        if (toggle === 1) {
+            handleAddPotentialDeleteProblems(problem_set.problem_set_id);
+        } else {
+            handleRemovePotentialDeleteProblems(problem_set.problem_set_id);
+        }
+    }, [toggle, problem_set.problem_set_id]);
 
 
     const handleProblemSetTitleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -46,8 +65,25 @@ function ProblemSetCard({problem_set, editMode, is_temp, handleChange}: ProblemC
     }
 
 
+    const handleDeleteCheckBoxChange = () => {
+        setToggle(prev => prev ^ 1);
+    }
+
+
     return (
-        <div className="ProblemSetCards" onClick={handleonClick}>
+        <div className={deleteMode? `FixedProblemSetCards${toggle === 1? '_hover': ''}`: "ProblemSetCards"} onClick={handleonClick}>
+            {
+                deleteMode ?
+                <div className={`selectBoxContainer${toggle === 1 ? '_hover': ''}`}>
+                    <input className="deleteCheckBox"
+                            type="checkbox"
+                            checked={toggle === 1}
+                            onChange={handleDeleteCheckBoxChange}>
+                    </input>
+                </div> :
+                ""
+            }
+            
             <div className="ProblemSetTitleContainer">
                 {
                     editMode ? 

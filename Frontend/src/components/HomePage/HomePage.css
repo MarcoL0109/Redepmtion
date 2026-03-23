@@ -67,3 +67,23 @@
     display: flex;
     justify-content: center;
 }
+
+.HomePageDeleteButton {
+    margin-bottom: 20px;
+    margin-top: 20px;
+    margin-left: 10px;
+    height: 50px;
+    font-size: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(122, 118, 118);
+    font-family: 'Courier New', Courier, monospace;
+    position: sticky;
+    top: 0;
+}
+
+
+.HomePageDeleteButton:hover {
+    background-color: rgb(162, 160, 160);
+}

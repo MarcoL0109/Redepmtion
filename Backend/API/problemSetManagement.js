@@ -177,4 +177,19 @@ router.post("/CreateNewProblemSet", async (req, res) => {
 })
 
 
+router.post("/DeleteProblemSets", async (req, res) => {
+    const problems_to_be_deleted = req.body.potentialDeleteList;
+    for (let i = 0; i < problems_to_be_deleted.length; i++) {
+        const nums_problem_set_id = Number(problems_to_be_deleted[i]);
+        try {
+            await db.query("DELETE FROM problem_sets WHERE problem_set_id = ?", [nums_problem_set_id]);
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({message: "Internal Server Error"});
+        }
+    }
+    res.status(200).json({message: "Problems Deleted Suuccefully"});
+})
+
+
 module.exports = router
