@@ -9,6 +9,7 @@ import ResetPassword from "./components/ResetPassword/ResetPassword";
 import HomePage from "./components/HomePage/HomePage";
 import TempPageForActivation from "./components/TempPageForActivation/TempPageForActivation";
 import ProblemList from "./components/ProblemList/ProblemList";
+import PendingStartRoom from "./components/PendingStartRoom/PendingStartRoom";
 
 
 function JoinRoom() {
@@ -23,7 +24,6 @@ function JoinRoom() {
         <InputPinBox/>
       </div>
     </div>
-    
   )
 }
 
@@ -41,6 +41,7 @@ function App() {
         <Route path="/ResetPassword" element={<ResetPassword/>} />
         <Route path="/HomePage" element={<HomePage/>} />
         <Route path="/ProblemList" element={<ProblemList/>} />
+        <Route path="/PendingStartRoom/:userId/:roomId" element={<PendingStartRoom/>} />
       </Routes>
     </BrowserRouter>
   );

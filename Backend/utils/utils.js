@@ -6,7 +6,7 @@ const db = require('../models/db')
 
 
 router.get("/SessionInfo", (req, res) => {
-    return res.json({session: req.session})
+    return res.json({session: req.session, sessionID: req.sessionID})
 })
 
 

@@ -6,15 +6,11 @@ const app = express();
 const userAPIs = require('./API/accountManagement.js');
 const utilAPIs = require('./utils/utils.js');
 const problemSetsAPIs = require('./API/problemSetManagement.js');
-const redis = require("redis");
+const roomManagementAPI = require('./API/quizRoomManagement.js');
+const redisClient = require("./utils/redis.js");
 const {RedisStore} = require("connect-redis");
-const redisClient = redis.createClient();
 const cookie_parser = require("cookie-parser");
 
-redisClient.connect()
-.then(async () => {
-    console.log("Redis Connected successfully");
-})
 
 app.use(cookie_parser("Secret Cookie"));
 app.use(cors({ credentials: true, origin: true }));
@@ -33,6 +29,7 @@ app.use(express.json());
 app.use("/api/users", userAPIs);
 app.use("/utils/", utilAPIs);
 app.use("/api/problemsets", problemSetsAPIs);
+app.use("/api/rooms", roomManagementAPI);
 
 app.listen(parseInt(process.env.REACT_APP_SERVER_PORT), () => {
     console.log("Server is running");

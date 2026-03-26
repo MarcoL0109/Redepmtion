@@ -62,6 +62,7 @@ function ProblemList() {
     const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL as string;
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL as string;
     const USER_API_URL = process.env.VITE_USER_API_URL as string;
+    const ROOM_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL as string;
     const navigate = useNavigate();
 
     const [displayError, setDisplayError] = useState<boolean>(false);
@@ -372,15 +373,34 @@ function ProblemList() {
         setIsSaved(true);
     }
 
+
+    const handleStartRoom = async () => {
+        const get_room_code = await fetch(`${ROOM_API_URL}/getRoomCode`, {
+            method: "GET",
+            credentials: "include",
+        })
+        const room_code_json = await get_room_code.json();
+        const room_code = room_code_json.code;
+        navigate(`/PendingStartRoom/${userData.user_id}/${room_code}`);
+    }
+
     
     return (
         <div className="HomePageContainer">
             <NavBar user_data={userData} />
             {
-                ((Object.keys(modifiedProblems).length > 0 || potentialDelete.length > 0 || Object.keys(potentialCreate).length > 0) && isSaved) &&
-                <div className="SaveRevertButtonContainer">
-                    <button className="SaveButton" onClick={handleSave}>Save</button>
-                    <button className="RevertButton" onClick={handleRevert}>Revert</button>
+                
+                <div className="ButtonsContainer">
+                    {
+                        ((Object.keys(modifiedProblems).length > 0 || potentialDelete.length > 0 || Object.keys(potentialCreate).length > 0) && isSaved) &&
+                        <div className="SaveRevertButtonContainer">
+                            <button className="SaveButton" onClick={handleSave}>Save</button>
+                            <button className="RevertButton" onClick={handleRevert}>Revert</button>
+                        </div>
+                    }
+                    <div className="startQuizButtonContainer">
+                        <button className="StartButton" onClick={handleStartRoom}>Start</button>
+                    </div>
                 </div>
                 
             }

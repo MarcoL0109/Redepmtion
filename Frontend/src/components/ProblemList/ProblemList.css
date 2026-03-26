@@ -9,8 +9,12 @@
     list-style: none;
 }
 
+
+.ProblemListContainer {
+    margin-top: 25px;;
+}
+
 .SaveButton {
-    margin-bottom: 20px;
     margin-top: 20px;
     height: 50px;
     font-size: 25px;
@@ -32,6 +36,15 @@
 .SaveRevertButtonContainer {
     margin-left: 30px;
     display: flex;
+    align-items: center;
+}
+
+
+.ButtonsContainer {
+    margin-left: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 
@@ -50,4 +63,22 @@
 
 .RevertButton:hover {
     background-color: rgb(162, 160, 160);
+}
+
+
+.StartButton {
+    margin-top: 20px;
+    margin-right: 30px;;
+    height: 50px;
+    font-size: 25px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #E3AB13;
+}
+
+
+.StartButton:hover {
+    background-color: #ffbc05;
 }
