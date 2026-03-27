@@ -97,7 +97,7 @@ router.post("/CreateNewProblem", async (req, res) => {
                 if (typeof json_attribute[attribute] === "object") {
                     const used_value = json_attribute[attribute];
                     let cleaned_used_value = JSON.stringify(used_value)
-                    cleaned_used_value = used_value.replace(/'/g, "''");
+                    cleaned_used_value = cleaned_used_value.replace(/'/g, "''");
                     attrbuteValue.push(`'${cleaned_used_value}'`);
                 } else if (typeof json_attribute[attribute] === "string") {
                     const used_value = json_attribute[attribute]

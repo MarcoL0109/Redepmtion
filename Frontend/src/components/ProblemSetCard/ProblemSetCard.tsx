@@ -30,7 +30,7 @@ function ProblemSetCard({problem_set, editMode, deleteMode, is_temp, handleClear
 
     const handleonClick = () => {
         if (!editMode && !deleteMode) {
-            navigate("/ProblemList", { state: { problem_set_id: problem_set.problem_set_id} });
+            navigate(`/ProblemList/${problem_set.problem_set_id}`);
         }
     }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { closestCorners, DndContext, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import "./ProblemList.css";
@@ -57,8 +57,9 @@ export interface UpdatedValues {
 
 
 function ProblemList() {
-    const location = useLocation();
-    const problem_set_id = location.state?.problem_set_id as number | null;
+    const params = useParams<{ problem_set_id?: string }>();
+    const problem_set_id_string = params?.problem_set_id ?? "0";
+    const problem_set_id = parseInt(problem_set_id_string, 10);
     const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL as string;
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL as string;
     const USER_API_URL = process.env.VITE_USER_API_URL as string;
@@ -105,7 +106,7 @@ function ProblemList() {
             setProblemList(fetched_problems_list);
             setSnapShotProblemList(fetched_problems_list);
             setIsLoaded(true);
-            setMaxSequence(fetched_problems_list[fetched_problems_list.length - 1].sequence_no + 1);
+            setMaxSequence(fetched_problems_list.length > 0 ? fetched_problems_list[fetched_problems_list.length - 1].sequence_no + 1 : 1);
             setSequenceMap(prev => {
                 const next = { ...prev };
                 for (let i = 0; i < fetched_problems_list.length; i++) {

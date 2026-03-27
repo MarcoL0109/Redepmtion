@@ -1,0 +1,31 @@
+.JoinRoomContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #38343B;
+}
+
+.TitleText {
+  color: white;
+  font-family: "Inika", serif;
+}
+
+.SigninButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 6px 10px;
+  color: white;
+  background-color: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 30px;
+  transition: 0.3s ease-in;
+}
+
+.SigninButton:hover {
+    background-color: white;
+    color: black;
+}

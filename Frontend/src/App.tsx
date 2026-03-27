@@ -1,6 +1,7 @@
 import InputPinBox from "./components/InputPINBox/InputPINBox";
 import "./App.css";
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import JoinRoom from "./components/JoinRoom/JoinRoom";
 import SignInPage from "./components/SignIn/SignInPage";
 import SignUpPage from "./components/SignUp/SignupPage";
 import ForgotPasswordPage from "./components/ForgetPassword/ForgotPasswordPage";
@@ -10,22 +11,8 @@ import HomePage from "./components/HomePage/HomePage";
 import TempPageForActivation from "./components/TempPageForActivation/TempPageForActivation";
 import ProblemList from "./components/ProblemList/ProblemList";
 import PendingStartRoom from "./components/PendingStartRoom/PendingStartRoom";
+import PlayerNamePendingPage from "./components/PlayerNamePendingPage/PlayerNamePendingPage";
 
-
-function JoinRoom() {
-  const navigate = useNavigate()
-  return (
-    <div className="JoinRoomContainer">
-      <button onClick={() => navigate("/SignIn")} className="SigninButton">
-        <strong>Sign in</strong>
-      </button>
-      <div className="BoxContainer">
-        <h1 className="TitleText"><strong>REDEMPTION</strong></h1>
-        <InputPinBox/>
-      </div>
-    </div>
-  )
-}
 
 
 function App() {
@@ -40,8 +27,9 @@ function App() {
         <Route path="/ValidateResetPasswordCode" element={<ValidateResetPasswordCode/>} />
         <Route path="/ResetPassword" element={<ResetPassword/>} />
         <Route path="/HomePage" element={<HomePage/>} />
-        <Route path="/ProblemList" element={<ProblemList/>} />
+        <Route path="/ProblemList/:problem_set_id" element={<ProblemList/>} />
         <Route path="/PendingStartRoom/:userId/:roomId" element={<PendingStartRoom/>} />
+        <Route path="/PlayerNamePendingPage/:roomId" element={<PlayerNamePendingPage/>}/>
       </Routes>
     </BrowserRouter>
   );

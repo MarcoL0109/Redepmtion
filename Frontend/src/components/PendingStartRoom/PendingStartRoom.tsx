@@ -1,5 +1,5 @@
 import { io, type Socket } from "socket.io-client";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import "./PendingStartRoon.css";
 
@@ -21,6 +21,8 @@ function PendingStartRoom() {
     const ROOM_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL as string;
     const USER_API_URL = process.env.VITE_USER_API_URL as string;
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL as string;
+    const location = useLocation();
+    let username = location.state?.username || null;
     const socketRef = useRef<Socket | null>(null);
     const {userId, roomId} = useParams();
     const [playerList, setPlayerList] = useState<string[]>([]);
@@ -42,7 +44,25 @@ function PendingStartRoom() {
     }
 
 
-    const getSession = async () => {
+    const getRoomSocketId = async (room_code: string) => {
+        const get_socket_id_response = await fetch(`${ROOM_API_URL}/getRoomSocketID`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({room_code: room_code})
+        })
+        if (get_socket_id_response.status === 200) {
+            const socket_json = await get_socket_id_response.json();
+            return socket_json.socket_id;
+        } else {
+            console.log("Internal Server Error");
+        }    
+    }
+
+
+    const getSessionID = async () => {
         const getSessionInfoRepsonse = await fetch(`${UTILS_API_URL}/SessionInfo`, {
             method: "GET",
             credentials: "include"
@@ -72,21 +92,29 @@ function PendingStartRoom() {
         let mounted = true;
         (async () => {
             try {
-                const username = await getUserInfo();
-                const session = await getSession();
+                if (username === null) {
+                    username = await getUserInfo();
+                }
+                const session = await getSessionID();
                 if (!mounted) return;
 
                 const socket = io(SOCKET_SERVER_URL, { autoConnect: false });
                 socketRef.current = socket;
-
                 socket.on('returned-player-list', (list) => {
                     setPlayerList(list);
                 });
 
                 socket.connect();
-                socket.on('connect', () => {
-                    handleStoreRoomCodeRedis(socket.id);
-                    socket.emit('join-room', socket.id, roomId, session, username);
+                socket.on('connect', async () => {
+                    await handleStoreRoomCodeRedis(socket.id);
+                    const join_room_socket = await getRoomSocketId(roomId || "");
+                    socket.emit('join-room', { socketId: join_room_socket, roomCode: roomId, sessionId: session, playerName: username }, (err: Error, playerList: string[]) => {
+                        if (err) {
+                            console.error('join-room error', err);
+                            return;
+                        }
+                        setPlayerList(playerList);
+                    });
                 });
             } catch (err) {
                 console.error('Failed to get user info or connect socket', err);
@@ -97,10 +125,10 @@ function PendingStartRoom() {
             mounted = false;
             const s = socketRef.current;
             if (s) {
-            s.off('returned-player-list');
-            s.off('connect');
-            s.disconnect();
-            socketRef.current = null;
+                s.off('returned-player-list');
+                s.off('connect');
+                s.disconnect();
+                socketRef.current = null;
             }
         };
         }, []);
