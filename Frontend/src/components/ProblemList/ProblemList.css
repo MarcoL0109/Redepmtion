@@ -82,3 +82,12 @@
 .StartButton:hover {
     background-color: #ffbc05;
 }
+
+.confirmDelete {
+    margin-right: 15px;
+}
+
+.overlay__buttons {
+    font-size: 20px;
+    margin-top: 20px;
+}

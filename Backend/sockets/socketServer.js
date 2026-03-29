@@ -11,8 +11,11 @@ io.on("connection", socket => {
     socket.on("join-room", async (data, ack) => {
         const { socketId, roomCode, sessionId, playerName } = data;
         socket.join(socketId);
+        const is_list_here = await redisClient.exists(`${roomCode}-List`);
         await redisClient.hSet(`${roomCode}-List`, sessionId, playerName);
-        await redisClient.expire(`${roomCode}-List`, ROOM_CODE_EXPIRATION_TIME);
+        if (!is_list_here) {
+            await redisClient.expire(`${roomCode}-List`, ROOM_CODE_EXPIRATION_TIME);
+        }
         const player_list = await redisClient.hGetAll(`${roomCode}-List`);
         let player_list_names = []
         for (key in player_list) {

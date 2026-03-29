@@ -5,7 +5,7 @@ import "./PendingStartRoon.css";
 
 /**
  * 
- * Username needs to be inserted to redis, if no username -> need to input in next page (partially done)
+ * Username needs to be inserted to redis, if no username -> need to input in next page (Done)
  * Make useState to store play list table (real time update) (Done)
  * But need to fix refresh no need to add new ourself in there -> Store the session_id: username in redis hashsets (Done)
  * Maybe that's all for now, if the above 2 takes too long
@@ -26,20 +26,38 @@ function PendingStartRoom() {
     const socketRef = useRef<Socket | null>(null);
     const {userId, roomId} = useParams();
     const [playerList, setPlayerList] = useState<string[]>([]);
+    const [isHost, setIsHost] = useState<boolean>(false);
 
 
-    const handleStoreRoomCodeRedis = async (socket_id: any) => {
+    const handleStoreRoomCodeRedis = async (socket_id: any, session: string) => {
         const store_socket_id_redis = await fetch(`${ROOM_API_URL}/storeRoomCodeSocketId`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             credentials: "include",
-            body: JSON.stringify({room_code: roomId, socket_id: socket_id})
+            body: JSON.stringify({room_code: roomId, socket_id: socket_id, session_id: session})
         })
 
         if (store_socket_id_redis.status === 500) {
             console.log("Cannot store room code in redis");
+        }
+    }
+
+
+    const handleSetRoomHost = async (room_code: string, session_id: string) => {
+        const check_is_host_repsonse = await fetch(`${ROOM_API_URL}/getRoomHost`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({room_code: room_code, session_id: session_id})
+        })
+        if (check_is_host_repsonse.status === 200) {
+            const check_is_host_repsonse_json = await check_is_host_repsonse.json();
+            const check_is_host_repsonse_res = check_is_host_repsonse_json.is_host;
+            setIsHost(check_is_host_repsonse_res);
         }
     }
 
@@ -106,7 +124,8 @@ function PendingStartRoom() {
 
                 socket.connect();
                 socket.on('connect', async () => {
-                    await handleStoreRoomCodeRedis(socket.id);
+                    await handleStoreRoomCodeRedis(socket.id, session);
+                    await handleSetRoomHost(roomId || "", session);
                     const join_room_socket = await getRoomSocketId(roomId || "");
                     socket.emit('join-room', { socketId: join_room_socket, roomCode: roomId, sessionId: session, playerName: username }, (err: Error, playerList: string[]) => {
                         if (err) {
@@ -159,9 +178,14 @@ function PendingStartRoom() {
                             )
                         }
                     </tbody>
-                    
                 </table>
-            </div>            
+            </div>
+            {
+                isHost &&
+                <div className="startButtonContainer">
+                    <button className="startRoomButton">Start</button>
+                </div>
+            }        
         </div>
     )
 }

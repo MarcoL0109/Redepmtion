@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { closestCorners, DndContext, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import "./ProblemList.css";
 import NavBar from "../NavBar/NavBar";
+import Overlays from "../Overlays/Overlay";
 import Sortable from "../SortableList/SortableList";
 import { Mosaic, Commet } from "react-loading-indicators";
 
@@ -85,6 +86,9 @@ function ProblemList() {
     const [revertCount, setRevertCount] = useState<number>(0);
     const [index, setIndex] = useState<number>(0);
     const [maxSequence, setMaxSequence] = useState<number>(0);
+    const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
+    const problemListRef = useRef(problemList);
+    useEffect(() => { problemListRef.current = problemList; }, [problemList]);
 
 
     const fetch_problem_list = async () => {
@@ -176,45 +180,83 @@ function ProblemList() {
         const { active, over } = event;
         if (!over) return;
 
-        setProblemList((current) => {
-            const oldIndex = current.findIndex(p => p.problem_id === Number(active.id));
-            const newIndex = current.findIndex(p => p.problem_id === Number(over.id));
+        const current = problemListRef.current;
+        const oldIndex = current.findIndex(p => p.problem_id === Number(active.id));
+        const newIndex = current.findIndex(p => p.problem_id === Number(over.id));
+        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
 
-            if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
-                return current;
+        const newList = arrayMove(current, oldIndex, newIndex);
+        const min_index = Math.min(oldIndex, newIndex);
+        const max_index = Math.max(oldIndex, newIndex);
+
+        // Compute start sequence
+        let start = Infinity;
+        for (let i = min_index; i <= max_index; i++) {
+            start = Math.min(newList[i].sequence_no, start);
+        }
+
+        // Build deltas
+        const modifiedDelta: Record<number, any> = {};
+        const potentialCreateDelta: Record<number, any> = {};
+
+        let seq = start;
+        for (let i = min_index; i <= max_index; i++) {
+            const item = newList[i];
+            const key = item.problem_id;
+            if (item.is_temp) {
+            potentialCreateDelta[key] = {
+                ...(potentialCreateDelta[key] || {}),
+                attributes: {
+                    ...(potentialCreateDelta[key]?.attributes || {}),
+                    sequence_no: seq,
+                },
+            };
+            } else {
+                modifiedDelta[key] = {
+                    ...(modifiedDelta[key] || {}),
+                    attributes: {
+                    ...(modifiedDelta[key]?.attributes || {}),
+                    sequence_no: seq,
+                    },
+                };
             }
-            const newList = arrayMove(current, oldIndex, newIndex);
-            const min_index = Math.min(oldIndex, newIndex);
-            const max_index = Math.max(oldIndex, newIndex);
+            seq++;
+        }
 
-            setModifiedProblems(prev => {
-                let start = 1e9;
-                for (let i = min_index; i <= max_index; i++) {
-                    start = Math.min(newList[i].sequence_no, start);
-                }
-                const next = { ...prev };
-                for (let i = min_index; i <= max_index; i++) {
-                    const key = newList[i].problem_id;
-                    next[key] = {
-                        ...(next[key] || {}),
-                        attributes: {
-                            ...(next[key]?.attributes || prev[key]?.attributes || {}),
-                            sequence_no: start,
-                        },
-                    };
-                    start++;
-                }
-                // Need to remove records that went back to their original places, save db write time
-                for (const problem_id in next) {
-                    const attributes = next[problem_id]["attributes"];
-                    if ("sequence_no" in attributes && attributes["sequence_no"] === sequenceMap[Number(problem_id)]) {
-                        delete attributes["sequence_no"];
+        // Clean up deltas: remove sequence_no entries that are equal to sequenceMap (no-op)
+        for (const k in modifiedDelta) {
+            if (modifiedDelta[k].attributes?.sequence_no === sequenceMap[Number(k)]) {
+                delete modifiedDelta[k].attributes.sequence_no;
+            }
+        }
+
+        // Apply state updates once each
+        setProblemList(newList);
+        setModifiedProblems(prev => {
+            const next = { ...prev };
+            for (const k in modifiedDelta) {
+                next[k] = { 
+                    ...(next[k] || {}),
+                    attributes: {
+                        ...(next[k]?.attributes || prev[k]?.attributes || {}),
+                        sequence_no: modifiedDelta[k].attributes.sequence_no
                     }
-                }
-                return next;
-            });
-            
-            return newList;
+                };
+            }
+            return next;
+        });
+        setPotentialCreate(prev => {
+            const next = { ...prev };
+            for (const k in potentialCreateDelta) {
+                next[k] = { 
+                    ...(next[k] || {}),
+                    attributes: {
+                        ...(next[k]?.attributes || prev[k]?.attributes || {}),
+                        sequence_no: potentialCreateDelta[k].attributes.sequence_no
+                    }
+                };
+            }
+            return next;
         });
     };
 
@@ -347,11 +389,19 @@ function ProblemList() {
     const handleSave = async () => {
         // Save order: insert -> update -> delete
         setIsSaved(false);
-        await handleSaveAddedProblems();
-        await handleSaveUpdate();
-        await handleSaveDelete();
-        setIsSaved(true);
-        await fetch_problem_list();
+        if (Object.keys(potentialCreate).length > 0) {
+            await handleSaveAddedProblems();
+        }
+        if (Object.keys(modifiedProblems).length > 0) {
+            await handleSaveUpdate();
+        }
+        if (potentialDelete.length > 0) {
+            setIsOverlayOpen(true);
+        } else {
+            setIsSaved(true);
+            await fetch_problem_list();
+        }
+        
     }
 
 
@@ -370,7 +420,7 @@ function ProblemList() {
         setPotentialDelete([]);
         setProblemList(snapShotProblemList);
         setRevertCount(prev => prev ^ 1);
-        setMaxSequence(snapShotProblemList[problemList.length - 1].sequence_no + 1)
+        setMaxSequence(snapShotProblemList[snapShotProblemList.length - 1].sequence_no + 1)
         setIsSaved(true);
     }
 
@@ -385,10 +435,35 @@ function ProblemList() {
         navigate(`/PendingStartRoom/${userData.user_id}/${room_code}`);
     }
 
+
+    const handleCloseOverlay = () => {
+        setPotentialDelete([]);
+        setIsOverlayOpen(false);
+        setIsSaved(true);
+    }
+
+
+    const handleConfirmDelete = async () => {
+        await handleSaveDelete();
+        setIsOverlayOpen(false);
+        await fetch_problem_list();
+        setIsSaved(true);
+    }
+
     
     return (
         <div className="HomePageContainer">
             <NavBar user_data={userData} />
+
+            <Overlays isOpen={isOverlayOpen}>
+                <h1>Bye Bye Records</h1>
+                <p>{`${potentialDelete.length} Problem(s) Selected For Deletion. Once they are deleted, they are gone forever. Are you
+                        sure you want to delete those records?`}</p>
+                <div className="overlay__buttons">
+                    <button className="confirmDelete" onClick={handleConfirmDelete}>Confirm</button>
+                    <button className="cancelDelete" onClick={handleCloseOverlay}>Cancel</button>
+                </div>
+            </Overlays>
             {
                 
                 <div className="ButtonsContainer">
@@ -399,9 +474,12 @@ function ProblemList() {
                             <button className="RevertButton" onClick={handleRevert}>Revert</button>
                         </div>
                     }
-                    <div className="startQuizButtonContainer">
-                        <button className="StartButton" onClick={handleStartRoom}>Start</button>
-                    </div>
+                    {
+                        isSaved &&
+                        <div className="startQuizButtonContainer">
+                            <button className="StartButton" onClick={handleStartRoom}>Start</button>
+                        </div>
+                    }
                 </div>
                 
             }

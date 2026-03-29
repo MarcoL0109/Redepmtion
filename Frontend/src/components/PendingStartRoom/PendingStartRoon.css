@@ -14,7 +14,6 @@
 .JoinerListContainer {
     display: flex;
     justify-content: center;
-    /* background-color: whitesmoke; */
 }
 
 .JoinerList {
@@ -31,4 +30,24 @@
 table, th, td {
   text-align: center;
   font-size: 25px;
+}
+
+
+.startButtonContainer {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.startRoomButton {
+    background-color: #E3AB13;
+    font-size: 25px;
+    width: 200px;
+}
+
+
+.startRoomButton:hover {
+    background-color: #ffbc05;
 }

@@ -1,6 +1,7 @@
 import "./HomePage.css";
 import NavBar from "../NavBar/NavBar";
 import ProblemSetCard from "../ProblemSetCard/ProblemSetCard";
+import Overlays from "../Overlays/Overlay";
 import { Mosaic } from 'react-loading-indicators';
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -49,26 +50,27 @@ function HomePage() {
     const [potentialCreateProblemSet, setPotentialCreateProblemSet] = useState<{[key: number]: {attributes: ProblemSetModificationMap}}>({});
     const [snapShotProblemSet, setSnapShotProblemSet] = useState([
         {
-        problem_set_id: -1, problem_set_title: "", problem_set_description: "", 
-        problem_counts: -1, created_by: -1, created_at: "", 
-        last_update_at: ""
+            problem_set_id: -1, problem_set_title: "", problem_set_description: "", 
+            problem_counts: -1, created_by: -1, created_at: "", 
+            last_update_at: ""
         }
     ])
     const [createIndex, setCreateIndex] = useState<number>(0);
     const [deleteMode, setDeleteMode] = useState<boolean>(false);
     const [potentialDeleteList, setPotentialDeleteList] = useState<number[]>([]);
     const [clearToggle, setClearToggle] = useState<number>(0);
+    const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
 
 
     const fetch_problem_sets = async (session_user_id: number) => {
         const fecth_problem_set_response = await fetch(`${PROBLEM_SET_API_URL}/getProblemSets`, {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: "include",
-                    body: JSON.stringify({user_id: session_user_id}),
-                })
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: "include",
+                body: JSON.stringify({user_id: session_user_id}),
+            })
         const fetched_problem_sets_json = await fecth_problem_set_response.json();
         const fetched_problem_sets_data = fetched_problem_sets_json.problem_sets;
         setProblemSets(fetched_problem_sets_data);
@@ -180,12 +182,19 @@ function HomePage() {
 
 
     const handleSave = async () => {
-        await handleSaveCreate();
-        await handleSaveUpdate();
-        await handleSaveDelete();
-        await fetch_problem_sets(userData.user_id);
-        setEditMode(false);
-        setDeleteMode(false);
+        if (Object.keys(potentialCreateProblemSet).length > 0) {
+            await handleSaveCreate();
+        }
+        if (Object.keys(problemSetModMap).length > 0) {
+            await handleSaveUpdate();
+        }
+        if (potentialDeleteList.length > 0) {
+            setIsOverlayOpen(true);
+        } else {
+            await fetch_problem_sets(userData.user_id);
+            setEditMode(false);
+            setDeleteMode(false);
+        }
     }
 
 
@@ -271,9 +280,33 @@ function HomePage() {
     }
 
 
+    const handleCloseOverlay = () => {
+        setPotentialDeleteList([]);
+        setIsOverlayOpen(false);
+        setDeleteMode(false);
+    }
+
+
+    const handleConfirmDelete = async () => {
+        await handleSaveDelete();
+        setIsOverlayOpen(false);
+        setDeleteMode(false);
+        await fetch_problem_sets(userData.user_id);
+    }
+
+
     return (
         <div className="HomePageContainer">
             <NavBar user_data={userData}/>
+            <Overlays isOpen={isOverlayOpen}>
+                <h1>Bye Bye Records</h1>
+                <p>{`${potentialDeleteList.length} Problem Set(s) Selected For Deletion. Once they are deleted, they are gone forever. Are you
+                        sure you want to delete those records?`}</p>
+                <div className="overlay__buttons">
+                    <button className="confirmDelete" onClick={handleConfirmDelete}>Confirm</button>
+                    <button className="cancelDelete" onClick={handleCloseOverlay}>Cancel</button>
+                </div>
+            </Overlays>
             {
                 isloaded ?
                 <div className="">

@@ -20,11 +20,13 @@ router.get("/getRoomCode", async (req, res) => {
 router.post("/storeRoomCodeSocketId", async (req, res) => {
     const room_code = req.body.room_code;
     const socket_id = req.body.socket_id;
+    const session_id = req.body.session_id;
     const is_here = await redisClient.exists(room_code);
 
     if (is_here === 0) {
         try {
             await redisClient.setEx(room_code, ROOM_CODE_EXPIRATION_TIME, socket_id);
+            await redisClient.setEx(`${room_code}-Host`, ROOM_CODE_EXPIRATION_TIME, session_id);
         } catch (error) {
             console.log(error);
             res.status(500).json({message: "Internal Server Error"});
@@ -53,6 +55,20 @@ router.post("/checkRoomCodeExist", async (req, res) => {
         res.status(404).json({message: "Room with such code is not found"});
     } else {
         res.status(200).json({message: "Room Found"});
+    }
+})
+
+
+router.post("/getRoomHost", async (req, res) => {
+    const room_code = req.body.room_code;
+    const received_session_id = req.body.session_id;
+    try {
+        const host_session_id = await redisClient.get(`${room_code}-Host`);
+        const is_host = host_session_id === received_session_id;
+        res.status(200).json({is_host: is_host});
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({message: "Internal Server Error"});
     }
 })
 
