@@ -94,7 +94,7 @@ router.post("/createUsers", async (req, res) => {
             subject: 'Activating new registered account',
             html: `
                 <h1>Account Activation</h1>
-                <p>Click the following link to activate your account. This link will be expired after 24 hours</p>
+                <p>Click the following link to activate your account. This link will be expired after 1 hour</p>
                 <a href="${activation_url}">Click here</a>
             `
         }
@@ -108,7 +108,6 @@ router.post("/createUsers", async (req, res) => {
 
 
 router.get("/activation", async (req, res) => {
-
     const encrypted_data_object = req.query;
     const encrypted_object_json = JSON.parse(encrypted_data_object.data)
     const decrypted_object = decrypt_object(encrypted_object_json, process.env.REACT_APP_ACTIVATION_ENCRYPTION_KEY);

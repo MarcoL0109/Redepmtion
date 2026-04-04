@@ -401,7 +401,6 @@ function ProblemList() {
             setIsSaved(true);
             await fetch_problem_list();
         }
-        
     }
 
 
@@ -432,7 +431,8 @@ function ProblemList() {
         })
         const room_code_json = await get_room_code.json();
         const room_code = room_code_json.code;
-        navigate(`/PendingStartRoom/${userData.user_id}/${room_code}`);
+        // Add username in the url to avoid using useLocation.
+        navigate(`/PendingStartRoom/${userData.user_id}/${userData.username}/${room_code}`);
     }
 
 
@@ -464,8 +464,8 @@ function ProblemList() {
                     <button className="cancelDelete" onClick={handleCloseOverlay}>Cancel</button>
                 </div>
             </Overlays>
+
             {
-                
                 <div className="ButtonsContainer">
                     {
                         ((Object.keys(modifiedProblems).length > 0 || potentialDelete.length > 0 || Object.keys(potentialCreate).length > 0) && isSaved) &&
@@ -477,7 +477,7 @@ function ProblemList() {
                     {
                         isSaved &&
                         <div className="startQuizButtonContainer">
-                            <button className="StartButton" onClick={handleStartRoom}>Start</button>
+                            <button className="StartButton" onClick={handleStartRoom} disabled={!isLoaded}>Start</button>
                         </div>
                     }
                 </div>

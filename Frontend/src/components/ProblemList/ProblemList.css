@@ -87,6 +87,14 @@
     margin-right: 15px;
 }
 
+.confirmDelete:hover {
+    background-color: rgb(84, 81, 81);
+}
+
+.cancelDelete:hover {
+    background-color: rgb(84, 81, 81);
+}
+
 .overlay__buttons {
     font-size: 20px;
     margin-top: 20px;

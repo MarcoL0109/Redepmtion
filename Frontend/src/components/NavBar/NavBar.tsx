@@ -29,7 +29,7 @@ const NavBar: React.FC<NavBarProps> = ({user_data}) => {
 
     return (
         <nav className="NavBar">
-            <h1 className="NavBarTitleText" onClick={() => navigate("/HomePage")}><strong>Redemption</strong></h1>
+            <h1 className="NavBarTitleText" onClick={() => navigate("/Home")}><strong>Redemption</strong></h1>
             <div className="UserIconCircle" onClick={handleProfileClick}>
                 {
                     user_data.user_icon === "" ? <FontAwesomeIcon icon={faUser} size="3x" /> :

@@ -26,7 +26,7 @@ function SignInPage() {
             setincorrectLoginInfo(login_status.status === 401 || login_status.status === 404);
             setNotActivated(login_status.status === 400);
             if (login_status.status === 200) {
-                navigate("/HomePage");
+                navigate("/Home");
             }
         } catch (error) {
             console.log(error);

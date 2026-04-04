@@ -26,9 +26,9 @@ function App() {
         <Route path="/ForgotPassword" element={<ForgotPasswordPage/>}/>
         <Route path="/ValidateResetPasswordCode" element={<ValidateResetPasswordCode/>} />
         <Route path="/ResetPassword" element={<ResetPassword/>} />
-        <Route path="/HomePage" element={<HomePage/>} />
+        <Route path="/Home" element={<HomePage/>} />
         <Route path="/ProblemList/:problem_set_id" element={<ProblemList/>} />
-        <Route path="/PendingStartRoom/:userId/:roomId" element={<PendingStartRoom/>} />
+        <Route path="/PendingStartRoom/:userId/:username/:roomId" element={<PendingStartRoom/>} />
         <Route path="/PlayerNamePendingPage/:roomId" element={<PlayerNamePendingPage/>}/>
       </Routes>
     </BrowserRouter>

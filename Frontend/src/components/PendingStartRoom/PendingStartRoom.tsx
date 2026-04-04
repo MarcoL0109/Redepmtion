@@ -1,15 +1,13 @@
 import { io, type Socket } from "socket.io-client";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import Overlays from "../Overlays/Overlay";
 import "./PendingStartRoon.css";
 
 /**
- * 
- * Username needs to be inserted to redis, if no username -> need to input in next page (Done)
- * Make useState to store play list table (real time update) (Done)
- * But need to fix refresh no need to add new ourself in there -> Store the session_id: username in redis hashsets (Done)
- * Maybe that's all for now, if the above 2 takes too long
- * 
+ * TODO
+ * Make the leave room / terminate room function
+ * Make a kick player function for the host as well
  * 
  * 
  */
@@ -19,14 +17,16 @@ import "./PendingStartRoon.css";
 function PendingStartRoom() {
     const SOCKET_SERVER_URL = process.env.REACT_APP_SOCKET_SERVER_URL as string;
     const ROOM_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL as string;
-    const USER_API_URL = process.env.VITE_USER_API_URL as string;
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL as string;
-    const location = useLocation();
-    let username = location.state?.username || null;
     const socketRef = useRef<Socket | null>(null);
-    const {userId, roomId} = useParams();
+    // Even though user_id is not used in here, but is a good component to identify participant is a logged in user or not
+    const {userId, username, roomId} = useParams();
     const [playerList, setPlayerList] = useState<string[]>([]);
     const [isHost, setIsHost] = useState<boolean>(false);
+    const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
+    const [hostLeave, setHostLeave] = useState<boolean>(false);
+    const [partLeave, setPartLeave] = useState<boolean>(false);
+    const navigate = useNavigate();
 
 
     const handleStoreRoomCodeRedis = async (socket_id: any, session: string) => {
@@ -90,29 +90,11 @@ function PendingStartRoom() {
     }
 
 
-    const getUserInfo = async () => {
-         const get_user_data_response = await fetch(`${USER_API_URL}/getUserInfo`, {
-            method: "POST",
-            headers: {
-                "Content-type": "application/json"
-            },
-            credentials: "include",
-            body: JSON.stringify({user_id: userId}),
-        });
-        const user_data_json = await get_user_data_response.json();
-        const user_data_content = user_data_json.userData;
-        return user_data_content.username;
-    }
-
-
     useEffect(() => {
         if (socketRef.current) return;
         let mounted = true;
         (async () => {
             try {
-                if (username === null) {
-                    username = await getUserInfo();
-                }
                 const session = await getSessionID();
                 if (!mounted) return;
 
@@ -122,14 +104,35 @@ function PendingStartRoom() {
                     setPlayerList(list);
                 });
 
+                socket.on("room-closed", (message) => {
+                    // For now we just quit and redirect -> But then later, we will need to add some overlay to notify user that the room is closed by the host
+                    console.log(message);
+                    navigate(userId === "0" ? "/" : "/Home", { state: {roomClosed: true} });
+                })
+
+                socket.on("log-leave-message", (message) => {
+                    console.log(message);
+                })
+
+                socket.on("kick-player-message", (message) => {
+                    console.log(message);
+                    navigate(userId === "0" ? "/" : "/Home", { state: {kickMessage: true} });
+                })
+
                 socket.connect();
                 socket.on('connect', async () => {
                     await handleStoreRoomCodeRedis(socket.id, session);
                     await handleSetRoomHost(roomId || "", session);
                     const join_room_socket = await getRoomSocketId(roomId || "");
-                    socket.emit('join-room', { socketId: join_room_socket, roomCode: roomId, sessionId: session, playerName: username }, (err: Error, playerList: string[]) => {
+                    socket.emit('join-room', { 
+                        socketId: join_room_socket,
+                        roomCode: roomId,
+                        sessionId: session,
+                        playerName: username
+                    }, (err: Error, playerList: string[]) => {
                         if (err) {
                             console.error('join-room error', err);
+                            navigate(userId === "0" ? "/" : "/Home")
                             return;
                         }
                         setPlayerList(playerList);
@@ -152,6 +155,51 @@ function PendingStartRoom() {
         };
         }, []);
 
+
+        const triggerTerminateOverlay = async () => {
+            setIsOverlayOpen(true);
+            setHostLeave(true);
+        }
+
+
+        const triggerLeaveOverlay = () => {
+            setIsOverlayOpen(true);
+            setPartLeave(true);
+        }
+
+
+        const handleLeaveRoom = async () => {
+            if (socketRef.current) {
+                const session = await getSessionID();
+                socketRef.current.emit("leave-room", {
+                    roomCode: roomId,
+                    isHost: isHost,
+                    clientSessionId: session
+                });
+            }
+            if (partLeave) {
+                navigate(userId === "0" ? "/" : "/Home")
+            }
+            setIsOverlayOpen(false);
+        }
+
+
+        const handleCloseOverlay = () => {
+            setIsOverlayOpen(false);
+            setHostLeave(false);
+            setPartLeave(false);
+        }
+
+
+        const handleKickPlayer = async (index: string) => {
+            if (socketRef.current) {
+                socketRef.current.emit("kick-player", {
+                    roomCode: roomId,
+                    playerIndex: index.toString(),
+                })
+            }
+        }
+
     
     return (
         <div className="HomePageContainer">
@@ -164,16 +212,26 @@ function PendingStartRoom() {
                 <table className="JoinerList">
                     <thead>
                         <tr>
-                            <th className="PlayerListRow">Player No.</th>
-                            <th className="PlayerListRow">Player Name</th>
+                            <th className={`PlayerListRow${isHost ? "" : "_Norm"}`}>Player No.</th>
+                            <th className={`PlayerListRow${isHost ? "" : "_Norm"}`}>Player Name</th>
                         </tr>
                     </thead>
                     <tbody>
                         {
                             playerList.map((player, index) => 
                                 <tr key={index}>
-                                    <td className="PlayerListRow">{index + 1}</td>
-                                    <td className="PlayerListRow">{player}</td>
+                                    <td className={`PlayerListRow${isHost ? "" : "_Norm"}`}>{index + 1}</td>
+                                    <td className={`PlayerListRow${isHost ? "" : "_Norm"}`}>{player}</td>
+                                    {
+                                        isHost && 
+                                        <td className="KickPlayerButtonColumn">
+                                            
+                                            {   index === 1 ?  
+                                                <button className="KickPlayerButton" onClick={() => handleKickPlayer((index + 1).toString())}>Kick Player</button>:
+                                                null
+                                            }
+                                        </td>
+                                    }
                                 </tr>
                             )
                         }
@@ -181,11 +239,28 @@ function PendingStartRoom() {
                 </table>
             </div>
             {
-                isHost &&
-                <div className="startButtonContainer">
+                isHost ?
+                <div className="roomOperationButtonContainer">
                     <button className="startRoomButton">Start</button>
+                    <button className="lockRoomButton">Lock</button>
+                    <button className="terminateRoomButton" onClick={triggerTerminateOverlay}>Terminate</button>
+                </div> :
+                <div className="roomOperationButtonContainer">
+                    <button className="leaveRoomButton" onClick={triggerLeaveOverlay}>Leave</button>
                 </div>
-            }        
+            }
+            <Overlays isOpen={isOverlayOpen}>
+                <div>
+                    <div>
+                        <h2>{hostLeave ? "Ending" : "Leaving"} the Party Before It Starts?</h2>
+                        <p>You are about to {hostLeave ? "terminate" : "leave"} this room. Are you sure you want to {hostLeave ? "end" : "leave"} this party before it starts?</p>
+                    </div>
+                    <div className="overlay__buttons">
+                        <button className="confirmDelete" onClick={handleLeaveRoom}>Confirm</button>
+                        <button className="cancelDelete" onClick={handleCloseOverlay}>Cancel</button>
+                    </div>
+                </div>  
+            </Overlays> 
         </div>
     )
 }
