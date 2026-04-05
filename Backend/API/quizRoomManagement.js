@@ -54,7 +54,12 @@ router.post("/checkRoomCodeExist", async (req, res) => {
     if (is_room_exist === 0) {
         res.status(404).json({message: "Room with such code is not found"});
     } else {
-        res.status(200).json({message: "Room Found"});
+        const isLocked = await redisClient.get(`${roomCode}-Locked`);
+        if (isLocked === "0") {
+            res.status(200).json({message: "Room Found"});
+        } else {
+            res.status(401).json({message: "Room is Locked by the Host"});
+        }
     }
 })
 

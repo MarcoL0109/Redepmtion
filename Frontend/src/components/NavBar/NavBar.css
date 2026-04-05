@@ -3,8 +3,8 @@
     height: 150px;
     background-color: #52514F;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .NavBarTitleText {
@@ -25,8 +25,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    position: absolute;
-    right: 15px;
+    margin-right: 20px;    
     border-radius: 100%;
 }
 
@@ -35,4 +34,22 @@
     height: 80px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+
+.NavBarButtonsContainer {
+    display: flex;
+    align-items: center;
+}
+
+
+.joinRoomButton {
+    color: rgb(223, 220, 220);
+    margin-right: 45px;
+}
+
+
+.joinRoomButton:hover {
+    color: #ffffff;
+    cursor: pointer;
 }

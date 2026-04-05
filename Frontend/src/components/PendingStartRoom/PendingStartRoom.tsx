@@ -23,10 +23,17 @@ function PendingStartRoom() {
     const {userId, username, roomId} = useParams();
     const [playerList, setPlayerList] = useState<string[]>([]);
     const [isHost, setIsHost] = useState<boolean>(false);
+    const isHostRef = useRef(isHost);
     const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
     const [hostLeave, setHostLeave] = useState<boolean>(false);
     const [partLeave, setPartLeave] = useState<boolean>(false);
+    const [toggleLock, setToggleLock] = useState<boolean>(false);
     const navigate = useNavigate();
+
+
+    useEffect(() => {
+        isHostRef.current = isHost;
+    }, [isHost]);
 
 
     const handleStoreRoomCodeRedis = async (socket_id: any, session: string) => {
@@ -107,7 +114,8 @@ function PendingStartRoom() {
                 socket.on("room-closed", (message) => {
                     // For now we just quit and redirect -> But then later, we will need to add some overlay to notify user that the room is closed by the host
                     console.log(message);
-                    navigate(userId === "0" ? "/" : "/Home", { state: {roomClosed: true} });
+                    console.log(`Is this player the host? -> ${isHostRef.current}`);
+                    navigate(userId === "0" ? "/" : "/Home", { state: {roomClosed: true, isHost: isHostRef.current} });
                 })
 
                 socket.on("log-leave-message", (message) => {
@@ -119,6 +127,10 @@ function PendingStartRoom() {
                     navigate(userId === "0" ? "/" : "/Home", { state: {kickMessage: true} });
                 })
 
+                socket.on("init-room-state", (isLocked) => {
+                    setToggleLock(isLocked);
+                })
+
                 socket.connect();
                 socket.on('connect', async () => {
                     await handleStoreRoomCodeRedis(socket.id, session);
@@ -128,7 +140,8 @@ function PendingStartRoom() {
                         socketId: join_room_socket,
                         roomCode: roomId,
                         sessionId: session,
-                        playerName: username
+                        playerName: username,
+                        isLocked: Number(toggleLock).toString(),
                     }, (err: Error, playerList: string[]) => {
                         if (err) {
                             console.error('join-room error', err);
@@ -200,6 +213,20 @@ function PendingStartRoom() {
             }
         }
 
+
+        const handleLockRoom = () => {
+            setToggleLock(prev => {
+                const newPrev = !prev;
+                if (socketRef.current) {
+                    socketRef.current.emit("set-lock-state", {
+                        roomCode: roomId,
+                        isLock: Number(newPrev).toString(),
+                    })
+                }
+                return newPrev;
+            });
+        }
+
     
     return (
         <div className="HomePageContainer">
@@ -242,7 +269,7 @@ function PendingStartRoom() {
                 isHost ?
                 <div className="roomOperationButtonContainer">
                     <button className="startRoomButton">Start</button>
-                    <button className="lockRoomButton">Lock</button>
+                    <button className={toggleLock ? "unlockRoomButton": "lockRoomButton"} onClick={handleLockRoom}>{toggleLock ? "Unlock": "Lock"}</button>
                     <button className="terminateRoomButton" onClick={triggerTerminateOverlay}>Terminate</button>
                 </div> :
                 <div className="roomOperationButtonContainer">

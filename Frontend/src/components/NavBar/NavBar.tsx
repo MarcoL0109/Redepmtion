@@ -14,6 +14,8 @@ const NavBar: React.FC<NavBarProps> = ({user_data}) => {
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL;
     const navigate = useNavigate();
     const [isDisplay, setIsDisplay] = useState<boolean>(false);
+
+
     const handleProfileClick = async (event: React.MouseEvent) => {
         event.stopPropagation();
         setIsDisplay(prev => !prev);
@@ -23,6 +25,12 @@ const NavBar: React.FC<NavBarProps> = ({user_data}) => {
         // })
     };
 
+
+    const handleJoinRoom = () => {
+        navigate("/");
+    }
+
+
     const handleClose = () => {
         setIsDisplay(false);
     };
@@ -30,15 +38,21 @@ const NavBar: React.FC<NavBarProps> = ({user_data}) => {
     return (
         <nav className="NavBar">
             <h1 className="NavBarTitleText" onClick={() => navigate("/Home")}><strong>Redemption</strong></h1>
-            <div className="UserIconCircle" onClick={handleProfileClick}>
-                {
-                    user_data.user_icon === "" ? <FontAwesomeIcon icon={faUser} size="3x" /> :
-                    <img className="UserIconImage" src={user_data.user_icon} alt="User Icon" />
-                }
-            </div>
+            <div className="NavBarButtonsContainer">
+                <div className="joinRoomButton" onClick={handleJoinRoom}>
+                    <h2>Join Room</h2>
+                </div>
+                <div className="UserIconCircle" onClick={handleProfileClick}>
+                    {
+                        user_data.user_icon === "" ? <FontAwesomeIcon icon={faUser} size="3x" /> :
+                        <img className="UserIconImage" src={user_data.user_icon} alt="User Icon" />
+                    }
+                </div>
+            </div>    
             
-            {isDisplay &&
-            <UserAccountBox onClose={handleClose} user_data={user_data}/>
+            {
+                isDisplay &&
+                <UserAccountBox onClose={handleClose} user_data={user_data}/>
             }
         </nav>
     );

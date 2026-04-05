@@ -56,3 +56,10 @@
 .RoomNotFoundErrorMessage {
   color: red;
 }
+
+
+.RoomNotFoundErrorMessageContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

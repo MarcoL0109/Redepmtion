@@ -29,3 +29,10 @@
     background-color: white;
     color: black;
 }
+
+
+.NavbarContainer {
+  top: 10px;
+  width: 100%;
+  position: absolute;
+}

@@ -3,10 +3,17 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom";
 
 
-function InputPinBox(){
+interface InputPINProps {
+    username: string,
+    userId: number,
+}
+
+
+function InputPinBox({username, userId}: InputPINProps) {
     const navigate = useNavigate();
     const [roomCode, setRoomCode] = useState<string>("");
     const [displayRoomNotFound, setDisplayRoomNotFound] = useState<boolean>(false);
+    const [displayRoomLocked, setDisplayRoomLocked] = useState<boolean>(false);
     const ROOM_MANAGEMENT_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL;
 
 
@@ -22,9 +29,10 @@ function InputPinBox(){
         });
         if (check_room_exist.status === 404) {
             setDisplayRoomNotFound(true);
+        } else if (check_room_exist.status === 200) {
+            navigate(userId === -1 ? `/PlayerNamePendingPage/${roomCode}`: `/PendingStartRoom/${userId}/${username}/${roomCode}`)
         } else {
-            setDisplayRoomNotFound(false);
-            navigate(`/PlayerNamePendingPage/${roomCode}`)
+            setDisplayRoomLocked(true);
         }
     }
 
@@ -47,8 +55,19 @@ function InputPinBox(){
                     <strong>Enter</strong>
                 </button>
                 {
-                    displayRoomNotFound && 
-                    <span className="RoomNotFoundErrorMessage">Room Not Found</span>
+                    displayRoomNotFound &&
+                    <div className="RoomNotFoundErrorMessageContainer">
+                        <span className="RoomNotFoundErrorMessage">Room Not Found</span>
+                    </div>
+                    
+                }
+
+                {
+                    displayRoomLocked &&
+                    <div className="RoomNotFoundErrorMessageContainer">
+                        <span className="RoomNotFoundErrorMessage">The Room is Locked By the Host</span>
+                    </div>
+                    
                 }
             </form>
             

@@ -118,4 +118,22 @@ table, th, td {
 
 .lockRoomButton:hover {
     background-color: rgb(92, 140, 229);
+    border: none;
+}
+
+
+.unlockRoomButton {
+    background-color: rgb(90, 88, 88);
+    font-family: 'Roboto', sans-serif;
+    font-size: 25px;
+    width: 200px;
+    margin-left: 25px;
+    margin-right: 25px;
+    border: none;
+}
+
+
+.unlockRoomButton:hover {
+    background-color: rgb(133, 130, 130);
+    border: none;
 }

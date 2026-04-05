@@ -3,7 +3,7 @@ import NavBar from "../NavBar/NavBar";
 import ProblemSetCard from "../ProblemSetCard/ProblemSetCard";
 import Overlays from "../Overlays/Overlay";
 import { Mosaic } from 'react-loading-indicators';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 
@@ -26,10 +26,14 @@ interface ProblemSet {
 
 function HomePage() {
 
-    const nevagate = useNavigate();
+    const navigate = useNavigate();
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL;
     const USER_API_URL = process.env.VITE_USER_API_URL;
     const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL;
+    const location = useLocation();
+    const kickState = location.state?.kickMessage || false;
+    const closeRoom = location.state?.roomClosed || false;
+    const isHost = location.state?.isHost || false;
     const [userData, setUserData] = useState<{ username: string; email: string; user_id: number; created_at: string, user_icon: string }>({
         username: "",
         email: "",
@@ -60,17 +64,32 @@ function HomePage() {
     const [potentialDeleteList, setPotentialDeleteList] = useState<number[]>([]);
     const [clearToggle, setClearToggle] = useState<number>(0);
     const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
+    const [isCloseRoomOverlayOpen, setIsCloseRoomOverlayOpen] = useState<boolean>(false);
+    const [isKickRoomOverlayOpen, setIsKickRoomOverlayOpen] = useState<boolean>(false);
+
+
+    useEffect(() => {
+        if (closeRoom && !isHost) {
+            setIsCloseRoomOverlayOpen(true);
+        } else if (kickState) {
+            setIsKickRoomOverlayOpen(true);
+        }
+        navigate(location.pathname, { 
+            replace: true, 
+            state: {} 
+        });
+    }, [closeRoom, isHost, navigate, location.pathname]);
 
 
     const fetch_problem_sets = async (session_user_id: number) => {
         const fecth_problem_set_response = await fetch(`${PROBLEM_SET_API_URL}/getProblemSets`, {
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: "include",
-                body: JSON.stringify({user_id: session_user_id}),
-            })
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: "include",
+            body: JSON.stringify({user_id: session_user_id}),
+        })
         const fetched_problem_sets_json = await fecth_problem_set_response.json();
         const fetched_problem_sets_data = fetched_problem_sets_json.problem_sets;
         setProblemSets(fetched_problem_sets_data);
@@ -88,7 +107,7 @@ function HomePage() {
             const session_info_body = await getSessionInfoRepsonse.json();
             const session_user_id = session_info_body.session.user_id || null
             if (session_user_id === null) {
-                nevagate("/SignIn");
+                navigate("/SignIn");
             } else {
                 const get_user_data_response = await fetch(`${USER_API_URL}/getUserInfo`, {
                     method: "POST",
@@ -287,6 +306,12 @@ function HomePage() {
     }
 
 
+    const handlePureCloseOverlay = () => {
+        setIsKickRoomOverlayOpen(false);
+        setIsCloseRoomOverlayOpen(false);
+    }
+
+
     const handleConfirmDelete = async () => {
         await handleSaveDelete();
         setIsOverlayOpen(false);
@@ -307,8 +332,29 @@ function HomePage() {
                     <button className="cancelDelete" onClick={handleCloseOverlay}>Cancel</button>
                 </div>
             </Overlays>
+
             {
-                isloaded ?
+                <Overlays isOpen={isKickRoomOverlayOpen}>
+                    <h2>Uh Oh! You have been Removed from the Room</h2>
+                    <p>You may have joined a party that you are not invited to. Sure there are no hard feelings.</p>
+                    <div className="overlay__buttons">
+                        <button className="cancelDelete" onClick={handlePureCloseOverlay}>Close</button>
+                    </div>
+                </Overlays>
+            }
+
+            {
+                <Overlays isOpen={isCloseRoomOverlayOpen}>
+                    <h2>Well...The Host Shut the Party Down Early</h2>
+                    <p>The host shut the room down. Maybe join another one</p>
+                    <div className="overlay__buttons">
+                        <button className="cancelDelete" onClick={handlePureCloseOverlay}>Close</button>
+                    </div>
+                </Overlays>
+            }
+
+            {
+                (isloaded && problemSets.length > 0) ?
                 <div className="">
                     {
                         editMode || deleteMode ?
@@ -322,8 +368,16 @@ function HomePage() {
                         </div>
                     }
                 </div> :
-                ""
+                null
             }
+
+            {
+                (isloaded && problemSets.length == 0) &&
+                <div className="CreateFirstProblemTextMessageContainer">
+                    <h2 className="CreateFirstProblemTextMessage">Create your first Problem Set Now!!</h2>
+                </div>
+            }
+
             {
                 isloaded ?
                 <div className="problemSetCardsContainer">

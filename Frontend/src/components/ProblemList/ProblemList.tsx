@@ -109,7 +109,6 @@ function ProblemList() {
             const fetched_problems_list: Problem[] = fetched_problems_json.problem_list;
             setProblemList(fetched_problems_list);
             setSnapShotProblemList(fetched_problems_list);
-            setIsLoaded(true);
             setMaxSequence(fetched_problems_list.length > 0 ? fetched_problems_list[fetched_problems_list.length - 1].sequence_no + 1 : 1);
             setSequenceMap(prev => {
                 const next = { ...prev };

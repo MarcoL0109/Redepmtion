@@ -47,7 +47,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 80px;
+    margin: 50px;
 }
 
 .circle:hover {
@@ -85,4 +85,16 @@
 
 .HomePageDeleteButton:hover {
     background-color: rgb(162, 160, 160);
+}
+
+
+.CreateFirstProblemTextMessage {
+    font-family: 'Courier New', Courier, monospace;
+    opacity: 0.5;
+}
+
+.CreateFirstProblemTextMessageContainer {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
 }
