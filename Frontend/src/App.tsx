@@ -1,4 +1,3 @@
-import InputPinBox from "./components/InputPINBox/InputPINBox";
 import "./App.css";
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import JoinRoom from "./components/JoinRoom/JoinRoom";
@@ -12,6 +11,7 @@ import TempPageForActivation from "./components/TempPageForActivation/TempPageFo
 import ProblemList from "./components/ProblemList/ProblemList";
 import PendingStartRoom from "./components/PendingStartRoom/PendingStartRoom";
 import PlayerNamePendingPage from "./components/PlayerNamePendingPage/PlayerNamePendingPage";
+import GamePage from "./components/GamePage/GamePage";
 
 
 
@@ -28,8 +28,9 @@ function App() {
         <Route path="/ResetPassword" element={<ResetPassword/>} />
         <Route path="/Home" element={<HomePage/>} />
         <Route path="/ProblemList/:problem_set_id" element={<ProblemList/>} />
-        <Route path="/PendingStartRoom/:userId/:username/:roomId" element={<PendingStartRoom/>} />
+        <Route path="/PendingStartRoom/:userId/:username/:roomId/:problem_set_id" element={<PendingStartRoom/>} />
         <Route path="/PlayerNamePendingPage/:roomId" element={<PlayerNamePendingPage/>}/>
+        <Route path="/GamePage/:userId/:username/:roomId/:problem_set_id" element={<GamePage/>} />
       </Routes>
     </BrowserRouter>
   );

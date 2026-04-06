@@ -1,14 +1,19 @@
 require('dotenv').config();
-const { RedisStore } = require('connect-redis');
-const redisClient = require("../utils/redis");
-const { connect } = require('../API/quizRoomManagement');
-const session = require('express-session');
+const {redisClient, subscriber} = require("../utils/redis");
 const io = require("socket.io")(parseInt(process.env.REACT_APP_SOCKET_SERVER_PORT), {
     cors: {
         origin: [process.env.REACT_APP_URL]
     }
 })
 const ROOM_CODE_EXPIRATION_TIME = 7200;
+const ROOM_SHADOW_KEYS_EXPIRAION_TIME = 7500;
+const expirationChannel = '__keyevent@0__:expired';
+const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL;
+
+
+// Have to make a keyspace notification for tracking what keys are expired
+// To fetched the socket ID of the expired room, use a shadow key (roomCode-List) and give other keys 5 more minutes of living time
+// Then I can get the socket ID of the room by splitting the key by -, extracting the room code and get the socket id from redis
 
 
 async function constructPlayerList(roomCode) {
@@ -21,29 +26,52 @@ async function constructPlayerList(roomCode) {
 }
 
 
+subscriber.subscribe(expirationChannel, async (message) => {
+    if (message.endsWith("-List")) {
+        const roomCode = message.replace("-List", "");
+        // console.log(`Room ${roomCode} has expired in Redis. Notifying sockets...`);
+        const roomSocketId = await redisClient.get(roomCode);
+        io.to(roomSocketId).emit("room-closed", { 
+            reason: "Inactivity", 
+            message: "Room expired due to 2 hours of inactivity." 
+        });
+
+        await Promise.all([
+            redisClient.del(`${roomCode}-Player-Session`),
+            redisClient.del(`${roomCode}-Session-Socket`),
+            redisClient.del(`${roomCode}-Session-Player`),
+            redisClient.del(`${roomCode}-Locked`),
+            redisClient.del(`${roomCode}`),
+            redisClient.del(`${roomCode}-Host`),
+        ]);
+    }
+});
+
+
 io.on("connection", socket => {
 
+    // Reset the TTL everytime a significant action happened (partially done)
     socket.on("join-room", async (data, ack) => {
         const { socketId, roomCode, sessionId, playerName, isLocked } = data;
         const is_lock_state_here = await redisClient.exists(`${roomCode}-Locked`);
-        let currentLockState = "0"
+        let currentLockState = "0";
+        socket.join(socketId);
+        let playerIndex = await redisClient.hGet(`${roomCode}-Session-Player`, sessionId);
+        if (!playerIndex) {
+            const currentPlayerCount = await redisClient.hLen(`${roomCode}-List`) + 1;
+            await redisClient.hSet(`${roomCode}-Player-Session`, currentPlayerCount, sessionId);
+            await redisClient.hSet(`${roomCode}-Session-Player`, sessionId, currentPlayerCount);
+        }
+        await redisClient.hSet(`${roomCode}-List`, sessionId, playerName);
+        await redisClient.hSet(`${roomCode}-Session-Socket`, sessionId, socket.id);
         if (!is_lock_state_here) {
-            await redisClient.setEx(`${roomCode}-Locked`, ROOM_CODE_EXPIRATION_TIME, isLocked);
+            await redisClient.setEx(`${roomCode}-Locked`, ROOM_SHADOW_KEYS_EXPIRAION_TIME, isLocked);
+            await redisClient.expire(`${roomCode}-List`, ROOM_CODE_EXPIRATION_TIME);
+            await redisClient.expire(`${roomCode}-Player-Session`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+            await redisClient.expire(`${roomCode}-Session-Socket`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+            await redisClient.expire(`${roomCode}-Session-Player`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
         } else {
             currentLockState = await redisClient.get(`${roomCode}-Locked`);
-        }
-        socket.join(socketId);
-        const is_list_here = await redisClient.exists(`${roomCode}-List`);
-        const playerIndex = await redisClient.hLen(`${roomCode}-List`) + 1;
-        await redisClient.hSet(`${roomCode}-List`, sessionId, playerName);
-        await redisClient.hSet(`${roomCode}-Player-Session`, playerIndex, sessionId);
-        await redisClient.hSet(`${roomCode}-Session-Player`, sessionId, playerIndex);
-        await redisClient.hSet(`${roomCode}-Session-Socket`, sessionId, socket.id);
-        if (!is_list_here) {
-            await redisClient.expire(`${roomCode}-List`, ROOM_CODE_EXPIRATION_TIME);
-            await redisClient.expire(`${roomCode}-Player-Session`, ROOM_CODE_EXPIRATION_TIME);
-            await redisClient.expire(`${roomCode}-Session-Socket`, ROOM_CODE_EXPIRATION_TIME);
-            await redisClient.expire(`${roomCode}-Session-Player`, ROOM_CODE_EXPIRATION_TIME);
         }
         const player_list_names = await constructPlayerList(roomCode, socketId);
         io.to(socketId).emit("returned-player-list", player_list_names);
@@ -68,7 +96,10 @@ io.on("connection", socket => {
             const player_list_names = await constructPlayerList(roomCode);
             io.to(roomSocketId).emit("returned-player-list", player_list_names);
         } else {
-            io.to(roomSocketId).emit("room-closed", "Room is closed by the host");
+            io.to(roomSocketId).emit("room-closed", {
+                reason: "Terminated",
+                message: "Room is closed by the host"
+            });
             io.in(roomSocketId).socketsLeave(roomSocketId);
             // Remove all room related information stored in the redis
             await Promise.all([
@@ -111,5 +142,29 @@ io.on("connection", socket => {
     socket.on("set-lock-state", async (data) => {
         const { roomCode, isLock } = data;
         await redisClient.set(`${roomCode}-Locked`, isLock);
+    })
+
+
+    socket.on("initialize-room-start", async (data) => {
+        const {roomCode} = data;
+        const roomSocketId = await redisClient.get(roomCode);
+
+        await redisClient.expire(`${roomCode}-Locked`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+        await redisClient.expire(`${roomCode}-List`, ROOM_CODE_EXPIRATION_TIME);
+        await redisClient.expire(`${roomCode}-Player-Session`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+        await redisClient.expire(`${roomCode}-Session-Socket`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+        await redisClient.expire(`${roomCode}-Session-Player`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+        await redisClient.expire(`${roomCode}-Host`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+        await redisClient.expire(`${roomCode}`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+
+        io.to(roomSocketId).emit("redirect-room-members");
+    })
+
+    // This is just a beta, the real thing does not work like that.
+    socket.on("request-send-problems", async (data) => {
+        const {roomCode, currProblem} = data;
+        const roomSocketId = await redisClient.get(roomCode);
+        io.to(roomSocketId).emit("receive-problem", {problem: currProblem});
+        
     })
 })

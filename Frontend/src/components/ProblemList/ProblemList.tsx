@@ -9,7 +9,7 @@ import Sortable from "../SortableList/SortableList";
 import { Mosaic, Commet } from "react-loading-indicators";
 
 
-interface Problem {
+export interface Problem {
     problem_id: number;
     problem_set_id: number,
     sequence_no: number;
@@ -431,7 +431,7 @@ function ProblemList() {
         const room_code_json = await get_room_code.json();
         const room_code = room_code_json.code;
         // Add username in the url to avoid using useLocation.
-        navigate(`/PendingStartRoom/${userData.user_id}/${userData.username}/${room_code}`);
+        navigate(`/PendingStartRoom/${userData.user_id}/${userData.username}/${room_code}/${problem_set_id}`);
     }
 
 

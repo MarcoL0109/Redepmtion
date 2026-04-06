@@ -7,7 +7,7 @@ const userAPIs = require('./API/accountManagement.js');
 const utilAPIs = require('./utils/utils.js');
 const problemSetsAPIs = require('./API/problemSetManagement.js');
 const roomManagementAPI = require('./API/quizRoomManagement.js');
-const redisClient = require("./utils/redis.js");
+const {redisClient, subscriber} = require("./utils/redis.js");
 const {RedisStore} = require("connect-redis");
 const cookie_parser = require("cookie-parser");
 
@@ -20,7 +20,7 @@ app.use(sessions({
     resave: false,
     saveUninitialized: true,
     cookie: {
-        maxAge: 30 * 60 * 1000,
+        maxAge: 180 * 60 * 1000,
     }
 }))
 app.use(express.json());

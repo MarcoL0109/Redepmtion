@@ -13,8 +13,11 @@ function JoinRoom() {
   const location = useLocation();
   const kickState = location.state?.kickMessage || false;
   const closeRoom = location.state?.roomClosed || false;
+  const isHost = location.state?.isHost || false;
+  const inActiveRoomClose = location.state?.inActiveRoomClosed || false;
   const [isKickOverlayOpen, setIsKickOverlayOpen] = useState<boolean>(false);
   const [isClosedRoomOverlayOpen, setIsClosedRoomOverlayOpen] = useState<boolean>(false);
+  const [isRoomExpiredOverlayOpen, setIsRoomExpiredOverlayOpen] = useState<boolean>(false);
   const UTILS_API_URL = process.env.VITE_UTILS_API_URL;
   const USER_API_URL = process.env.VITE_USER_API_URL;
   const [userData, setUserData] = useState<{ username: string; email: string; user_id: number; created_at: string, user_icon: string }>({
@@ -28,10 +31,12 @@ function JoinRoom() {
 
 
   useEffect(() => {
-        if (closeRoom) {
+        if (closeRoom && !isHost) {
             setIsClosedRoomOverlayOpen(true);
         } else if (kickState) {
             setIsKickOverlayOpen(true);
+        } else if (inActiveRoomClose) {
+          setIsRoomExpiredOverlayOpen(true);
         }
         navigate(location.pathname, { 
             replace: true, 
@@ -86,12 +91,21 @@ function JoinRoom() {
   const handleCloseOverlay = () => {
     setIsKickOverlayOpen(false);
     setIsClosedRoomOverlayOpen(false);
+    setIsRoomExpiredOverlayOpen(false);
   }
 
 
   return (
 
     <div className="JoinRoomContainer">
+
+      <Overlays isOpen={isRoomExpiredOverlayOpen}>
+        <h2>Uh Oh! The Room is Expired Due to Inactivity</h2>
+        <p>Have you fallen asleep? Is ok, we have closed the party for you</p>
+        <div className="overlay__buttons">
+            <button className="cancelDelete" onClick={handleCloseOverlay}>Close</button>
+        </div>
+      </Overlays>
       
       <Overlays isOpen={isKickOverlayOpen}>
         <h2>Uh Oh! You have been Removed from the Room</h2>

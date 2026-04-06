@@ -31,9 +31,6 @@ function HomePage() {
     const USER_API_URL = process.env.VITE_USER_API_URL;
     const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL;
     const location = useLocation();
-    const kickState = location.state?.kickMessage || false;
-    const closeRoom = location.state?.roomClosed || false;
-    const isHost = location.state?.isHost || false;
     const [userData, setUserData] = useState<{ username: string; email: string; user_id: number; created_at: string, user_icon: string }>({
         username: "",
         email: "",
@@ -64,21 +61,6 @@ function HomePage() {
     const [potentialDeleteList, setPotentialDeleteList] = useState<number[]>([]);
     const [clearToggle, setClearToggle] = useState<number>(0);
     const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
-    const [isCloseRoomOverlayOpen, setIsCloseRoomOverlayOpen] = useState<boolean>(false);
-    const [isKickRoomOverlayOpen, setIsKickRoomOverlayOpen] = useState<boolean>(false);
-
-
-    useEffect(() => {
-        if (closeRoom && !isHost) {
-            setIsCloseRoomOverlayOpen(true);
-        } else if (kickState) {
-            setIsKickRoomOverlayOpen(true);
-        }
-        navigate(location.pathname, { 
-            replace: true, 
-            state: {} 
-        });
-    }, [closeRoom, isHost, navigate, location.pathname]);
 
 
     const fetch_problem_sets = async (session_user_id: number) => {
@@ -306,12 +288,6 @@ function HomePage() {
     }
 
 
-    const handlePureCloseOverlay = () => {
-        setIsKickRoomOverlayOpen(false);
-        setIsCloseRoomOverlayOpen(false);
-    }
-
-
     const handleConfirmDelete = async () => {
         await handleSaveDelete();
         setIsOverlayOpen(false);
@@ -332,26 +308,6 @@ function HomePage() {
                     <button className="cancelDelete" onClick={handleCloseOverlay}>Cancel</button>
                 </div>
             </Overlays>
-
-            {
-                <Overlays isOpen={isKickRoomOverlayOpen}>
-                    <h2>Uh Oh! You have been Removed from the Room</h2>
-                    <p>You may have joined a party that you are not invited to. Sure there are no hard feelings.</p>
-                    <div className="overlay__buttons">
-                        <button className="cancelDelete" onClick={handlePureCloseOverlay}>Close</button>
-                    </div>
-                </Overlays>
-            }
-
-            {
-                <Overlays isOpen={isCloseRoomOverlayOpen}>
-                    <h2>Well...The Host Shut the Party Down Early</h2>
-                    <p>The host shut the room down. Maybe join another one</p>
-                    <div className="overlay__buttons">
-                        <button className="cancelDelete" onClick={handlePureCloseOverlay}>Close</button>
-                    </div>
-                </Overlays>
-            }
 
             {
                 (isloaded && problemSets.length > 0) ?

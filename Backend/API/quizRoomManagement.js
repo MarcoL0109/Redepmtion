@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const redisClient = require("../utils/redis");
-const ROOM_CODE_EXPIRATION_TIME = 7200;
+const {redisClient, subscriber} = require("../utils/redis");
+const ROOM_SHADOW_KEYS_EXPIRAION_TIME = 7500;
 
 
 router.get("/getRoomCode", async (req, res) => {
@@ -25,8 +25,8 @@ router.post("/storeRoomCodeSocketId", async (req, res) => {
 
     if (is_here === 0) {
         try {
-            await redisClient.setEx(room_code, ROOM_CODE_EXPIRATION_TIME, socket_id);
-            await redisClient.setEx(`${room_code}-Host`, ROOM_CODE_EXPIRATION_TIME, session_id);
+            await redisClient.setEx(room_code, ROOM_SHADOW_KEYS_EXPIRAION_TIME, socket_id);
+            await redisClient.setEx(`${room_code}-Host`, ROOM_SHADOW_KEYS_EXPIRAION_TIME, session_id);
         } catch (error) {
             console.log(error);
             res.status(500).json({message: "Internal Server Error"});

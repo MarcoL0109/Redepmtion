@@ -18,7 +18,7 @@ function PlayerNamePendingPage() {
 
     const handleJoinRoom = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        navigate(`/PendingStartRoom/0/${username}/${roomId}`)
+        navigate(`/PendingStartRoom/0/${username}/${roomId}/0`)
     }
 
 

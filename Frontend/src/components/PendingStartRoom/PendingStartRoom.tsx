@@ -15,12 +15,13 @@ import "./PendingStartRoon.css";
 
 
 function PendingStartRoom() {
+
     const SOCKET_SERVER_URL = process.env.REACT_APP_SOCKET_SERVER_URL as string;
     const ROOM_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL as string;
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL as string;
     const socketRef = useRef<Socket | null>(null);
     // Even though user_id is not used in here, but is a good component to identify participant is a logged in user or not
-    const {userId, username, roomId} = useParams();
+    const {userId, username, roomId, problem_set_id} = useParams();
     const [playerList, setPlayerList] = useState<string[]>([]);
     const [isHost, setIsHost] = useState<boolean>(false);
     const isHostRef = useRef(isHost);
@@ -100,22 +101,28 @@ function PendingStartRoom() {
     useEffect(() => {
         if (socketRef.current) return;
         let mounted = true;
+        const socket = io(SOCKET_SERVER_URL, { autoConnect: false });
+        socketRef.current = socket;
+
         (async () => {
             try {
                 const session = await getSessionID();
                 if (!mounted) return;
-
-                const socket = io(SOCKET_SERVER_URL, { autoConnect: false });
-                socketRef.current = socket;
                 socket.on('returned-player-list', (list) => {
                     setPlayerList(list);
                 });
 
-                socket.on("room-closed", (message) => {
-                    // For now we just quit and redirect -> But then later, we will need to add some overlay to notify user that the room is closed by the host
+                socket.on("room-closed", ({reason, message}) => {
                     console.log(message);
-                    console.log(`Is this player the host? -> ${isHostRef.current}`);
-                    navigate(userId === "0" ? "/" : "/Home", { state: {roomClosed: true, isHost: isHostRef.current} });
+                    if (reason === "Terminated") {
+                        navigate("/", { state: {roomClosed: true, isHost: isHostRef.current} });
+                    } else {
+                        navigate("/", { state: {inActiveRoomClosed: true} });
+                    }     
+                })
+
+                socket.on("redirect-room-members", () => {
+                    navigate(`/GamePage/${userId}/${username}/${roomId}/${problem_set_id}`);
                 })
 
                 socket.on("log-leave-message", (message) => {
@@ -124,7 +131,7 @@ function PendingStartRoom() {
 
                 socket.on("kick-player-message", (message) => {
                     console.log(message);
-                    navigate(userId === "0" ? "/" : "/Home", { state: {kickMessage: true} });
+                    navigate("/", { state: {kickMessage: true} });
                 })
 
                 socket.on("init-room-state", (isLocked) => {
@@ -145,7 +152,7 @@ function PendingStartRoom() {
                     }, (err: Error, playerList: string[]) => {
                         if (err) {
                             console.error('join-room error', err);
-                            navigate(userId === "0" ? "/" : "/Home")
+                            navigate("/")
                             return;
                         }
                         setPlayerList(playerList);
@@ -191,7 +198,7 @@ function PendingStartRoom() {
                 });
             }
             if (partLeave) {
-                navigate(userId === "0" ? "/" : "/Home")
+                navigate("/")
             }
             setIsOverlayOpen(false);
         }
@@ -227,6 +234,15 @@ function PendingStartRoom() {
             });
         }
 
+
+        const handleStartRoom = () => {
+            if (socketRef.current) {
+                socketRef.current.emit("initialize-room-start", {
+                    roomCode: roomId,
+                });
+            }
+        }
+
     
     return (
         <div className="HomePageContainer">
@@ -251,8 +267,7 @@ function PendingStartRoom() {
                                     <td className={`PlayerListRow${isHost ? "" : "_Norm"}`}>{player}</td>
                                     {
                                         isHost && 
-                                        <td className="KickPlayerButtonColumn">
-                                            
+                                        <td className="KickPlayerButtonColumn"> 
                                             {   index === 1 ?  
                                                 <button className="KickPlayerButton" onClick={() => handleKickPlayer((index + 1).toString())}>Kick Player</button>:
                                                 null
@@ -268,7 +283,7 @@ function PendingStartRoom() {
             {
                 isHost ?
                 <div className="roomOperationButtonContainer">
-                    <button className="startRoomButton">Start</button>
+                    <button className="startRoomButton" onClick={handleStartRoom}>Start</button>
                     <button className={toggleLock ? "unlockRoomButton": "lockRoomButton"} onClick={handleLockRoom}>{toggleLock ? "Unlock": "Lock"}</button>
                     <button className="terminateRoomButton" onClick={triggerTerminateOverlay}>Terminate</button>
                 </div> :

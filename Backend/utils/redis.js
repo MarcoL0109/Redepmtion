@@ -1,10 +1,24 @@
 const redis = require("redis");
+
 const redisClient = redis.createClient();
+const subscriber = redisClient.duplicate();
 
-redisClient.connect()
-.then(async () => {
-    console.log("Redis Connected successfully");
-})
+// Create an anonymous async function and call it immediately
+(async () => {
+    try {
+        await redisClient.connect();
+        console.log("Redis Connected successfully");
 
+        await subscriber.connect();
+        console.log("Subscriber Redis Connected successfully");
 
-module.exports = redisClient;
+        // Now that we are connected, set the config
+        await redisClient.configSet('notify-keyspace-events', 'Ex');
+        console.log("Redis Keyspace Notifications enabled");
+        
+    } catch (err) {
+        console.error("Redis Connection Error:", err);
+    }
+})();
+
+module.exports = { redisClient, subscriber };

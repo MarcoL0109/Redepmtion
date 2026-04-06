@@ -30,7 +30,7 @@ function InputPinBox({username, userId}: InputPINProps) {
         if (check_room_exist.status === 404) {
             setDisplayRoomNotFound(true);
         } else if (check_room_exist.status === 200) {
-            navigate(userId === -1 ? `/PlayerNamePendingPage/${roomCode}`: `/PendingStartRoom/${userId}/${username}/${roomCode}`)
+            navigate(userId === -1 ? `/PlayerNamePendingPage/${roomCode}`: `/PendingStartRoom/${userId}/${username}/${roomCode}/0`)
         } else {
             setDisplayRoomLocked(true);
         }
