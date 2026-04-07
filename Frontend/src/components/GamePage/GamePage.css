@@ -34,11 +34,11 @@
 .AnswerOptionContainer {
     background-color: white;
     width: 100%;
-    height: 35vh;
+    height: 30vh;
     color: black;
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
 }
 
 
@@ -66,12 +66,19 @@
 }
 
 
+
 .OptionADiv {
     background-color: rgb(235, 84, 84);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 35px;
+}
+
+
+.OptionADiv:hover {
+    background-color: rgb(237, 107, 107);
+    cursor: pointer;
 }
 
 
@@ -84,12 +91,24 @@
 }
 
 
+.OptionBDiv:hover {
+    background-color: rgb(90, 226, 92);
+    cursor: pointer;
+}
+
+
 .OptionCDiv {
     background-color: rgb(232, 185, 18);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 35px;
+}
+
+
+.OptionCDiv:hover {
+    background-color: rgb(230, 196, 71);
+    cursor: pointer;
 }
 
 
@@ -102,15 +121,45 @@
 }
 
 
+.OptionDDiv:hover {
+    background-color: rgb(97, 156, 239);
+    cursor: pointer;
+}
+
+
 .ProgressBarContainer {
     width: 100%;
     display: flex;
+    flex-direction: column; 
+    align-items: center; 
+}
+
+
+.ProgressBarContainer > div {
+    width: 95%;
+    max-width: 1000px;
+}
+
+
+.BlankFormContainer {
+    display: flex;
+    align-items: center;
     justify-content: center;
-    padding-top: 25px;
 }
 
 
-.ProgressBar {
-    width: 85%;
-    /* background-color: rgb(132, 104, 104); */
+.InputSubmitContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
+
+
+.BlankAnswerSubmitButton {
+    margin-top: 15px;
+    width: 150px;
+    height: 50px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+

@@ -8,7 +8,6 @@ const io = require("socket.io")(parseInt(process.env.REACT_APP_SOCKET_SERVER_POR
 const ROOM_CODE_EXPIRATION_TIME = 7200;
 const ROOM_SHADOW_KEYS_EXPIRAION_TIME = 7500;
 const expirationChannel = '__keyevent@0__:expired';
-const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL;
 
 
 // Have to make a keyspace notification for tracking what keys are expired
@@ -29,7 +28,6 @@ async function constructPlayerList(roomCode) {
 subscriber.subscribe(expirationChannel, async (message) => {
     if (message.endsWith("-List")) {
         const roomCode = message.replace("-List", "");
-        // console.log(`Room ${roomCode} has expired in Redis. Notifying sockets...`);
         const roomSocketId = await redisClient.get(roomCode);
         io.to(roomSocketId).emit("room-closed", { 
             reason: "Inactivity", 
@@ -160,11 +158,27 @@ io.on("connection", socket => {
         io.to(roomSocketId).emit("redirect-room-members");
     })
 
-    // This is just a beta, the real thing does not work like that.
     socket.on("request-send-problems", async (data) => {
         const {roomCode, currProblem} = data;
         const roomSocketId = await redisClient.get(roomCode);
         io.to(roomSocketId).emit("receive-problem", {problem: currProblem});
-        
+        let totalSeconds = currProblem.time_allowed_in_seconds;
+        let secondsLeft = totalSeconds;
+        const countdown = setInterval(() => {
+            io.to(roomSocketId).emit("receive-new-timer-percentage", {newPercentage: (secondsLeft / totalSeconds) * 100});
+            secondsLeft -= 1;
+            if (secondsLeft < 0) {
+                clearInterval(countdown);
+            }
+        }, 1000);
+    })
+
+
+    socket.on("submit-client-answer", async (data) => {
+        const {option, roomCode, clientSocketId} = data;
+        const roomSocketId = await redisClient.get(roomCode);
+        console.log(`"Received option -> ${option}`);
+        // We need the client socket id because each action is direct to each individual client, if we do io.to.emit directly
+        // we will emit the wrong response and everyone just receive the same response from the socket
     })
 })

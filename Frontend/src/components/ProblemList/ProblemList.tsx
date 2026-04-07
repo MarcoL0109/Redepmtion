@@ -61,9 +61,13 @@ function ProblemList() {
     const params = useParams<{ problem_set_id?: string }>();
     const problem_set_id_string = params?.problem_set_id ?? "0";
     const problem_set_id = parseInt(problem_set_id_string, 10);
+    //@ts-ignore
     const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL as string;
+    //@ts-ignore
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL as string;
+    //@ts-ignore
     const USER_API_URL = process.env.VITE_USER_API_URL as string;
+    //@ts-ignore
     const ROOM_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL as string;
     const navigate = useNavigate();
 
@@ -145,14 +149,16 @@ function ProblemList() {
                 const user_data_json = await get_user_data_response.json();
                 const user_data_content = user_data_json.userData;
                 let image_url = "";
-                if (user_data_content.user_icon !== null) {
+                if (user_data_content && user_data_content.user_icon !== null) {
                     const arrayBuffer = new Uint8Array(user_data_content.user_icon.data);
                     const image_blob = new Blob([arrayBuffer], { type: 'image/jpg' });
                     image_url = URL.createObjectURL(image_blob);
                 }
-                user_data_content.user_icon = image_url;
-                setUserData(user_data_content);
-                setIsLoaded(true);
+                if (user_data_content) {
+                    user_data_content.user_icon = image_url;
+                    setUserData(user_data_content);
+                    setIsLoaded(true);
+                }  
             }
         }
         fetch_problem_list();

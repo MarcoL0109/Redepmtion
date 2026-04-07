@@ -3,22 +3,28 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./GamePage.css";
 import { Problem } from "../ProblemList/ProblemList";
-
+import ProgressLine from "../ProgressBar/ProgressBar";
 
 function GamePage() {
 
 
     const socketRef = useRef<Socket | null>(null);
+    //@ts-ignore
     const SOCKET_SERVER_URL = process.env.REACT_APP_SOCKET_SERVER_URL as string;
+    //@ts-ignore
     const ROOM_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL as string;
+    //@ts-ignore
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL as string;
+    //@ts-ignore
     const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL as string;
     const navigate = useNavigate();
     const {userId, username, roomId, problem_set_id} = useParams();
     const [isHost, setIsHost] = useState<boolean>(false);
     const [countDown, setCountDown] = useState<number>(3);
     const [currentDisplayProblem, setCurrentDisplayProblem] = useState<Problem>();
+    const [currentTime, setCurrentTimer] = useState<number>(100);
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 
 
     const getRoomSocketId = async (room_code: string) => {
@@ -109,14 +115,18 @@ function GamePage() {
         socketRef.current = socket;
 
         (async () => {
+            await sleep((1) * 1000);
             try {
                 const session = await getSessionID();
                 if (!mounted) return;
 
                 socket.on("receive-problem", ({ problem }) => {
-                    console.log("Received problems:", problem);
                     setCurrentDisplayProblem(problem);
                 });
+
+                socket.on("receive-new-timer-percentage", ({ newPercentage }) => {
+                    setCurrentTimer(newPercentage);
+                })
 
                 socket.on('connect', async () => {
                     await handleStoreRoomCodeRedis(socket.id, session);
@@ -136,18 +146,14 @@ function GamePage() {
                             navigate("/");
                             return;
                         }
-                        // What I should do is fetch the problem list in the useEffect if is the host, And iterate the problem list
-                        // and emit them to the socket server, the server will broadcast the received problem. Rmb only the host is requesting such thing
-                        // Note: Everything above should be done in the useEffect, 1 state is used to track to current displayed problem
                         if (checkIsHost === true) {
                             (async () => {
                                 for (const problem of problemList) {
-                                    const timeAllowed = problem.time_allowed_in_seconds;
                                     socket.emit("request-send-problems", {
                                         roomCode: roomId,
                                         currProblem: problem,
                                     });
-                                    await sleep(timeAllowed * 1000);
+                                    await sleep((problem.time_allowed_in_seconds + 3) * 1000);
                                 }
                                 console.log("All problems have been sent.");
                             })();
@@ -182,6 +188,19 @@ function GamePage() {
     }, [countDown]);
 
 
+    const handleSubmitClientAnswer = async (e: React.MouseEvent<HTMLDivElement>) => {
+        const selectedId = e.currentTarget.dataset.id;
+        if (selectedId && socketRef.current) {
+            const splitAnswer = selectedId.split("-");
+            socketRef.current.emit("submit-client-answer", {
+                option: splitAnswer[splitAnswer.length - 1],
+                roomCode: roomId,
+                clientSocketId: socketRef.current.id,
+            })
+        }
+    }
+
+
     return (
         <div className="GamePageContainer">
             {
@@ -192,22 +211,45 @@ function GamePage() {
                 :
                 <div className="ProblemAnswerContainer">
                     <div className="ProgressBarContainer">
-                        <progress className="ProgressBar" value={0.5}/>
+                        <ProgressLine
+                            label=""
+                            backgroundColor="white"
+                            visualParts={[
+                                {
+                                    percentage: `${currentTime}%`,
+                                    color: "deepskyblue",
+                                }
+                            ]}
+                        />
                     </div>
                     <div className="ProblemTextSection">
                         <div className="ProblemTextContainer">
-                            <span>Something in here</span>
+                            <span>{currentDisplayProblem?.question_text}</span>
                         </div>
                     </div>
-                    
                     <div className="AnswerOptionContainer">
-                        <div className="OptionsContainer">
-                            <div className="OptionADiv">A</div>
-                            <div className="OptionBDiv">B</div>
-                            <div className="OptionCDiv">C</div>
-                            <div className="OptionDDiv">D</div>
-                        </div>
-                    </div>
+                        {
+                            currentDisplayProblem?.question_type === "Multiple Choice" ?
+                            <div className="OptionsContainer">
+                                <div className="OptionADiv" data-id="option-A" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.A}</div>
+                                <div className="OptionBDiv" data-id="option-B" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.B}</div>
+                                <div className="OptionCDiv" data-id="option-C" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.C}</div>
+                                <div className="OptionDDiv" data-id="option-D" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.D}</div>
+                            </div> :
+                            <div className="BlankAnswerContainer">
+                                <form className="BlankFormContainer">
+                                    <div className="InputSubmitContainer">
+                                        <div>
+                                            <input className="BlankAnswerInput" type="text" placeholder="Type Your Answer"></input>
+                                        </div>
+                                        <button className="BlankAnswerSubmitButton" type="submit">
+                                            <strong>Confirm</strong>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        }
+                    </div> 
                 </div>
             }
         </div>

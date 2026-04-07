@@ -18,7 +18,9 @@ function JoinRoom() {
   const [isKickOverlayOpen, setIsKickOverlayOpen] = useState<boolean>(false);
   const [isClosedRoomOverlayOpen, setIsClosedRoomOverlayOpen] = useState<boolean>(false);
   const [isRoomExpiredOverlayOpen, setIsRoomExpiredOverlayOpen] = useState<boolean>(false);
+  //@ts-ignore
   const UTILS_API_URL = process.env.VITE_UTILS_API_URL;
+  //@ts-ignore
   const USER_API_URL = process.env.VITE_USER_API_URL;
   const [userData, setUserData] = useState<{ username: string; email: string; user_id: number; created_at: string, user_icon: string }>({
       username: "",

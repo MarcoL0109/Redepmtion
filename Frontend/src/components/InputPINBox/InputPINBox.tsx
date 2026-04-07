@@ -14,6 +14,7 @@ function InputPinBox({username, userId}: InputPINProps) {
     const [roomCode, setRoomCode] = useState<string>("");
     const [displayRoomNotFound, setDisplayRoomNotFound] = useState<boolean>(false);
     const [displayRoomLocked, setDisplayRoomLocked] = useState<boolean>(false);
+    //@ts-ignore
     const ROOM_MANAGEMENT_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL;
 
 

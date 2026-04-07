@@ -10,6 +10,7 @@ function SignInPage() {
     const navigate = useNavigate()
     const [incorrectLoginInfo, setincorrectLoginInfo] = useState<boolean>(false);
     const [notActivated, setNotActivated] = useState<boolean>(false);
+    //@ts-ignore
     const USER_API_URL = process.env.VITE_USER_API_URL;
 
 

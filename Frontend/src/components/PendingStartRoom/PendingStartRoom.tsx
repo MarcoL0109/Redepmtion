@@ -16,8 +16,11 @@ import "./PendingStartRoon.css";
 
 function PendingStartRoom() {
 
+    //@ts-ignore
     const SOCKET_SERVER_URL = process.env.REACT_APP_SOCKET_SERVER_URL as string;
+    //@ts-ignore
     const ROOM_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL as string;
+    //@ts-ignore
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL as string;
     const socketRef = useRef<Socket | null>(null);
     // Even though user_id is not used in here, but is a good component to identify participant is a logged in user or not
