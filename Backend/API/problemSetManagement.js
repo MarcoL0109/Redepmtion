@@ -27,6 +27,8 @@ router.post("/getProblems", async (req, res) => {
     }
 })
 
+// TODO: fix the last update datetime for the problemsets -> trigger in mysql does not work I guess because we are
+// already updating the same table so it doesn't allow me to do that. IDK
 
 router.post("/SaveUpdatedProblems", async (req, res) => {
     const {update_values} = req.body;

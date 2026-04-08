@@ -76,9 +76,27 @@
 }
 
 
+.OptionADiv_disable {
+    background-color: grey;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
 .OptionADiv:hover {
     background-color: rgb(237, 107, 107);
     cursor: pointer;
+}
+
+
+.OptionBDiv_disable {
+    background-color: grey;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
 }
 
 
@@ -106,6 +124,15 @@
 }
 
 
+.OptionCDiv_disable {
+    background-color: grey;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
 .OptionCDiv:hover {
     background-color: rgb(230, 196, 71);
     cursor: pointer;
@@ -114,6 +141,15 @@
 
 .OptionDDiv {
     background-color: rgb(49, 128, 238);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionDDiv_disable {
+    background-color: grey;
     display: flex;
     align-items: center;
     justify-content: center;

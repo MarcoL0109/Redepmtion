@@ -8,6 +8,7 @@ const io = require("socket.io")(parseInt(process.env.REACT_APP_SOCKET_SERVER_POR
 const ROOM_CODE_EXPIRATION_TIME = 7200;
 const ROOM_SHADOW_KEYS_EXPIRAION_TIME = 7500;
 const expirationChannel = '__keyevent@0__:expired';
+const activeRoomProblems = new Map();
 
 
 // Have to make a keyspace notification for tracking what keys are expired
@@ -62,12 +63,14 @@ io.on("connection", socket => {
         }
         await redisClient.hSet(`${roomCode}-List`, sessionId, playerName);
         await redisClient.hSet(`${roomCode}-Session-Socket`, sessionId, socket.id);
+        await redisClient.hSet(`${roomCode}-Session-Score`, sessionId, 0);
         if (!is_lock_state_here) {
             await redisClient.setEx(`${roomCode}-Locked`, ROOM_SHADOW_KEYS_EXPIRAION_TIME, isLocked);
             await redisClient.expire(`${roomCode}-List`, ROOM_CODE_EXPIRATION_TIME);
             await redisClient.expire(`${roomCode}-Player-Session`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
             await redisClient.expire(`${roomCode}-Session-Socket`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
             await redisClient.expire(`${roomCode}-Session-Player`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+            await redisClient.expire(`${roomCode}-Session-Score`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
         } else {
             currentLockState = await redisClient.get(`${roomCode}-Locked`);
         }
@@ -108,6 +111,7 @@ io.on("connection", socket => {
                 redisClient.del(`${roomCode}-Session-Socket`),
                 redisClient.del(`${roomCode}-Session-Player`),
                 redisClient.del(`${roomCode}-Locked`),
+                redisClient.del(`${roomCode}-Session-Score`),
             ]);
         }
     })
@@ -154,14 +158,17 @@ io.on("connection", socket => {
         await redisClient.expire(`${roomCode}-Session-Player`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
         await redisClient.expire(`${roomCode}-Host`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
         await redisClient.expire(`${roomCode}`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+        await redisClient.expire(`${roomCode}-Session-Score`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
 
         io.to(roomSocketId).emit("redirect-room-members");
     })
 
+    
     socket.on("request-send-problems", async (data) => {
         const {roomCode, currProblem} = data;
         const roomSocketId = await redisClient.get(roomCode);
         io.to(roomSocketId).emit("receive-problem", {problem: currProblem});
+        activeRoomProblems.set(roomCode, currProblem);
         let totalSeconds = currProblem.time_allowed_in_seconds;
         let secondsLeft = totalSeconds;
         const countdown = setInterval(() => {
@@ -175,10 +182,11 @@ io.on("connection", socket => {
 
 
     socket.on("submit-client-answer", async (data) => {
-        const {option, roomCode, clientSocketId} = data;
-        const roomSocketId = await redisClient.get(roomCode);
-        console.log(`"Received option -> ${option}`);
-        // We need the client socket id because each action is direct to each individual client, if we do io.to.emit directly
-        // we will emit the wrong response and everyone just receive the same response from the socket
+        const {question_type, clientAnswer, roomCode} = data;
+        const currProblem = activeRoomProblems.get(roomCode);
+        console.log(`Received answer -> ${clientAnswer}`);
+        const correctAnswer = question_type === "MC" ? currProblem.correct_answer.MC : currProblem.correct_answer.Blanks;
+        io.to(socket.id).emit("check-answer-response", {correct: clientAnswer === correctAnswer});
+
     })
 })

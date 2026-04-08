@@ -91,6 +91,7 @@ function ProblemList() {
     const [index, setIndex] = useState<number>(0);
     const [maxSequence, setMaxSequence] = useState<number>(0);
     const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
+    const [isStartWithoutAnswer, setIsStartWithoutAnswer] = useState<boolean>(false);
     const problemListRef = useRef(problemList);
     useEffect(() => { problemListRef.current = problemList; }, [problemList]);
 
@@ -123,6 +124,7 @@ function ProblemList() {
                 return next;
             });
         }
+        setIsLoaded(true);
     };
 
 
@@ -346,7 +348,7 @@ function ProblemList() {
 
     const handleTempAddProblems = async () => {
         if (problem_set_id !== null)  {
-            const new_problem: Problem = {"problem_set_id": problem_set_id,"problem_id": index, "sequence_no": maxSequence, "question_type": "Multiple Choice", 
+            const new_problem: Problem = {"problem_set_id": problem_set_id, "problem_id": index, "sequence_no": maxSequence, "question_type": "Multiple Choice", 
                             "question_text": "", "answer_options": {"A": "", "B": "", "C": "", "D": ""},
                             "correct_answer": {"MC": "", "Blanks": ""}, "case_sensitive": 0,
                             "time_allowed_in_seconds": 10, "is_temp": true,
@@ -393,7 +395,6 @@ function ProblemList() {
     
     const handleSave = async () => {
         // Save order: insert -> update -> delete
-        setIsSaved(false);
         if (Object.keys(potentialCreate).length > 0) {
             await handleSaveAddedProblems();
         }
@@ -403,7 +404,6 @@ function ProblemList() {
         if (potentialDelete.length > 0) {
             setIsOverlayOpen(true);
         } else {
-            setIsSaved(true);
             await fetch_problem_list();
         }
     }
@@ -437,6 +437,13 @@ function ProblemList() {
         const room_code_json = await get_room_code.json();
         const room_code = room_code_json.code;
         // Add username in the url to avoid using useLocation.
+        for (let i = 0; i < problemList.length; i++) {
+            if ((problemList[i].question_type === "Multiple Choice" && problemList[i].correct_answer.MC === "") ||
+                problemList[i].question_type === "Blanks" && problemList[i].correct_answer.Blanks === "") {
+                setIsStartWithoutAnswer(true);
+                return;
+            }
+        }
         navigate(`/PendingStartRoom/${userData.user_id}/${userData.username}/${room_code}/${problem_set_id}`);
     }
 
@@ -455,6 +462,11 @@ function ProblemList() {
         setIsSaved(true);
     }
 
+
+    const handleCloseInvalidRoomOverlay = () => {
+        setIsStartWithoutAnswer(false);
+    }
+
     
     return (
         <div className="HomePageContainer">
@@ -467,6 +479,15 @@ function ProblemList() {
                 <div className="overlay__buttons">
                     <button className="confirmDelete" onClick={handleConfirmDelete}>Confirm</button>
                     <button className="cancelDelete" onClick={handleCloseOverlay}>Cancel</button>
+                </div>
+            </Overlays>
+
+
+            <Overlays isOpen={isStartWithoutAnswer}>
+                <h1>Hmm, the Problemset seems not Ready Yet</h1>
+                <p>Some Problems don't have Correc Answer Set...</p>
+                <div className="overlay__buttons">
+                    <button className="cancelDelete" onClick={handleCloseInvalidRoomOverlay}>Cancel</button>
                 </div>
             </Overlays>
 
