@@ -11,11 +11,6 @@ const expirationChannel = '__keyevent@0__:expired';
 const activeRoomProblems = new Map();
 
 
-// Have to make a keyspace notification for tracking what keys are expired
-// To fetched the socket ID of the expired room, use a shadow key (roomCode-List) and give other keys 5 more minutes of living time
-// Then I can get the socket ID of the room by splitting the key by -, extracting the room code and get the socket id from redis
-
-
 async function constructPlayerList(roomCode) {
     const player_list = await redisClient.hGetAll(`${roomCode}-List`);
     let player_list_names = []
@@ -23,6 +18,11 @@ async function constructPlayerList(roomCode) {
         player_list_names.push(player_list[key]);
     }
     return player_list_names
+}
+
+
+async function constructRankingList(roomCode) {
+
 }
 
 
@@ -42,6 +42,7 @@ subscriber.subscribe(expirationChannel, async (message) => {
             redisClient.del(`${roomCode}-Locked`),
             redisClient.del(`${roomCode}`),
             redisClient.del(`${roomCode}-Host`),
+            redisClient.del(`${roomCode}-Session-Score`),
         ]);
     }
 });
@@ -133,6 +134,7 @@ io.on("connection", socket => {
                 redisClient.hDel(`${roomCode}-List`, playerSession),
                 redisClient.hDel(`${roomCode}-Player-Session`, playerIndex),
                 redisClient.hDel(`${roomCode}-Session-Socket`, playerSession),
+                redisClient.hDel(`${roomCode}-Session-Score`, playerSession),
             ]);
         io.to(targetSocketId).emit("kick-player-message", `${username} is kicked by host`);
         const player_list_names = await constructPlayerList(roomCode, roomSocketId);
@@ -173,7 +175,7 @@ io.on("connection", socket => {
         let secondsLeft = totalSeconds;
         const countdown = setInterval(() => {
             io.to(roomSocketId).emit("receive-new-timer-percentage", {newPercentage: (secondsLeft / totalSeconds) * 100});
-            secondsLeft -= 1;
+            secondsLeft--;
             if (secondsLeft < 0) {
                 clearInterval(countdown);
             }
@@ -182,11 +184,20 @@ io.on("connection", socket => {
 
 
     socket.on("submit-client-answer", async (data) => {
-        const {question_type, clientAnswer, roomCode} = data;
+        const {question_type, clientAnswer, roomCode, timeSubmitted, sessionId} = data;
         const currProblem = activeRoomProblems.get(roomCode);
         console.log(`Received answer -> ${clientAnswer}`);
         const correctAnswer = question_type === "MC" ? currProblem.correct_answer.MC : currProblem.correct_answer.Blanks;
-        io.to(socket.id).emit("check-answer-response", {correct: clientAnswer === correctAnswer});
-
+        // Calculate the score based on the speed and correctness?
+        let returnScore = (await redisClient.hGet(`${roomCode}-Session-Score`, sessionId)) ?? 0;
+        returnScore = parseInt(returnScore, 10);
+        returnScore += (correctAnswer ? 100 : 0);
+        if (correctAnswer) {
+            const scoreForTime = 100 * (timeSubmitted / 100);
+            returnScore += scoreForTime;
+        }
+        await redisClient.hSet(`${roomCode}-Session-Score`, sessionId, returnScore);
+        // Compose the ranking list here
+        io.to(socket.id).emit("check-answer-response", {correct: clientAnswer === correctAnswer, score: returnScore});
     })
 })

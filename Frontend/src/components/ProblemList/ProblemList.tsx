@@ -392,6 +392,19 @@ function ProblemList() {
         } 
     }
 
+
+    const handleUpdateLastWriteTime = async () => {
+        const updateResponse = await fetch(`${PROBLEM_SET_API_URL}/UpdateWriteTime`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({problem_set_id: problem_set_id})
+        });
+        return updateResponse.status;
+    }
+
     
     const handleSave = async () => {
         // Save order: insert -> update -> delete
@@ -403,9 +416,10 @@ function ProblemList() {
         }
         if (potentialDelete.length > 0) {
             setIsOverlayOpen(true);
-        } else {
-            await fetch_problem_list();
-        }
+            return;
+        } 
+        await fetch_problem_list();
+        await handleUpdateLastWriteTime();
     }
 
 
@@ -459,6 +473,7 @@ function ProblemList() {
         await handleSaveDelete();
         setIsOverlayOpen(false);
         await fetch_problem_list();
+        await handleUpdateLastWriteTime();
         setIsSaved(true);
     }
 

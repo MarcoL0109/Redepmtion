@@ -3,7 +3,7 @@ import NavBar from "../NavBar/NavBar";
 import ProblemSetCard from "../ProblemSetCard/ProblemSetCard";
 import Overlays from "../Overlays/Overlay";
 import { Mosaic } from 'react-loading-indicators';
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 
@@ -27,10 +27,12 @@ interface ProblemSet {
 function HomePage() {
 
     const navigate = useNavigate();
+    // @ts-ignore
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL;
+    // @ts-ignore
     const USER_API_URL = process.env.VITE_USER_API_URL;
+    // @ts-ignore
     const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL;
-    const location = useLocation();
     const [userData, setUserData] = useState<{ username: string; email: string; user_id: number; created_at: string, user_icon: string }>({
         username: "",
         email: "",

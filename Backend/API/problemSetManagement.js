@@ -27,6 +27,23 @@ router.post("/getProblems", async (req, res) => {
     }
 })
 
+
+router.post("/UpdateWriteTime", async (req, res) => {
+    const {problem_set_id} = req.body;
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(now - offset)).toISOString().slice(0, 19).replace('T', ' ');
+    const updateWritTimeQuery = `UPDATE problem_sets SET last_update_at = '${localISOTime}' WHERE problem_set_id = ${problem_set_id}`;
+
+    try {
+        await db.query(updateWritTimeQuery);
+        res.status(200).json({message: "Write Time Updated Successfully"});
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({message: "Internal Server Error"});
+    }
+})
+
 // TODO: fix the last update datetime for the problemsets -> trigger in mysql does not work I guess because we are
 // already updating the same table so it doesn't allow me to do that. IDK
 

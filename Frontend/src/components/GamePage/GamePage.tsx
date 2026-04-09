@@ -6,9 +6,10 @@ import { Problem } from "../ProblemList/ProblemList";
 import ProgressLine from "../ProgressBar/ProgressBar"
 import RankPage from "../RankPage/RankPage";
 import {RankPageProps} from "../RankPage/RankPage";
+import { Mosaic } from "react-loading-indicators";
+
 
 function GamePage() {
-
 
     const socketRef = useRef<Socket | null>(null);
     //@ts-ignore
@@ -29,6 +30,8 @@ function GamePage() {
     const [blankAnswerInput, setBlankAnswerInput] = useState<string>("");
     const [displayRankingPage, setDisplayRankingPage] = useState<boolean>(false);
     const [rankingList, setRankingList] = useState<RankPageProps>({players: [{playerName: "", playerScore: 0}]});
+    const [allProblemsStreamed, setAllProblemStreamed] = useState<boolean>(false); // Not in use yet
+    const [pendingResultScreen, setPendingResultScreen] = useState<boolean>(false);
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
@@ -141,8 +144,8 @@ function GamePage() {
                 navigate("/");
             }
             await sleep((2) * 1000);
+            const session = await getSessionID();
             try {
-                const session = await getSessionID();
                 if (!mounted) return;
 
                 socket.on("receive-problem", ({ problem }) => {
@@ -154,8 +157,10 @@ function GamePage() {
                     setCurrentTimer(newPercentage);
                 });
 
-                socket.on("check-answer-response", ({correct}) => {
-                    console.log(`Your answer is ${correct ? "correct" : "incorrect"}`);
+                socket.on("check-answer-response", ({correct, score}) => {
+                    console.log(`Your answer is ${correct ? "correct" : "incorrect"} and current score is ${score}`);
+                    // Need to return the ranking in set and set the states. Once the timer runs out, just pass in the state
+                    // And render the component.
                 })
 
                 socket.on('connect', async () => {
@@ -185,8 +190,9 @@ function GamePage() {
                                         currProblem: problem,
                                     });
                                     await sleep((problem.time_allowed_in_seconds + 3) * 1000);
+                                    setPendingResultScreen(false);
                                     setDisplayRankingPage(true);
-                                    await sleep(6000); // Set to the ranking page for 6s
+                                    await sleep(5000); // Set to the ranking page for 6s
                                     setDisplayRankingPage(false);
                                 }
                                 console.log("All problems have been sent.");
@@ -216,14 +222,17 @@ function GamePage() {
     const handleSubmitClientAnswer = async (e: React.MouseEvent<HTMLDivElement>) => {
         if (!submittedAnswer) {
             const selectedId = e.currentTarget.dataset.id;
+            const session = await getSessionID();
             if (selectedId && socketRef.current) {
                 const splitAnswer = selectedId.split("-");
                 socketRef.current.emit("submit-client-answer", {
                     question_type: "MC",
                     clientAnswer: splitAnswer[splitAnswer.length - 1],
                     roomCode: roomId,
+                    timeSubmitted: currentTime,
+                    sessionId: session,
                 });
-                setSubmittedAnswer(true);
+                setPendingResultScreen(true);
             }
         }
     }
@@ -236,8 +245,9 @@ function GamePage() {
                 question_type: "Blanks",
                 clientAnswer: blankAnswerInput,
                 roomCode: roomId,
+                timeSubmitted: currentTime,
             });
-            setSubmittedAnswer(true);
+            setPendingResultScreen(true);
         }
     }
 
@@ -252,7 +262,7 @@ function GamePage() {
             }
 
             {
-                (countDown === 0 && !displayRankingPage) &&
+                (countDown === 0 && !displayRankingPage && !pendingResultScreen) &&
                 <div className="ProblemAnswerContainer">
                     <div className="ProgressBarContainer">
                         <ProgressLine
@@ -275,10 +285,10 @@ function GamePage() {
                         {
                             currentDisplayProblem?.question_type === "Multiple Choice" ?
                             <div className="OptionsContainer">
-                                <div className={`OptionADiv${submittedAnswer ? "_disable" : ""}`} data-id="option-A" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.A}</div>
-                                <div className={`OptionBDiv${submittedAnswer ? "_disable" : ""}`} data-id="option-B" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.B}</div>
-                                <div className={`OptionCDiv${submittedAnswer ? "_disable" : ""}`} data-id="option-C" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.C}</div>
-                                <div className={`OptionDDiv${submittedAnswer ? "_disable" : ""}`} data-id="option-D" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.D}</div>
+                                <div className="OptionADiv" data-id="option-A" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.A}</div>
+                                <div className="OptionBDiv" data-id="option-B" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.B}</div>
+                                <div className="OptionCDiv" data-id="option-C" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.C}</div>
+                                <div className="OptionDDiv" data-id="option-D" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.D}</div>
                             </div> :
                             <div className="BlankAnswerContainer">
                                 <form className="BlankFormContainer" onSubmit={handleSubmitFormAnswer}>
@@ -304,11 +314,17 @@ function GamePage() {
             }
 
             {
+                // I was making this, I forgot...
                 displayRankingPage &&
                 <RankPage players={rankingList.players}/>
             }
 
-            
+            {
+                pendingResultScreen &&
+                <div className="LoadingAnimationContainer">
+                    <h3 className="CatchUpSpan">You're too Fast, Others are Still Thinking. Give Them Some Time to Catch Up</h3>
+                </div>
+            }
         </div>
     )
 }

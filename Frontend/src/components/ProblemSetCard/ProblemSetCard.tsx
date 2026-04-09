@@ -35,6 +35,20 @@ function ProblemSetCard({problem_set, editMode, deleteMode, is_temp, handleClear
     }
 
 
+    const formatDate = (dateString: string) => {
+        if (!dateString) return "Never";
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('en-AU', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        }).format(date);
+    };
+
+
     useEffect(() => {
         setToggle(0);
     }, [handleClearToggle])
@@ -81,7 +95,7 @@ function ProblemSetCard({problem_set, editMode, deleteMode, is_temp, handleClear
                             onChange={handleDeleteCheckBoxChange}>
                     </input>
                 </div> :
-                ""
+                null
             }
             
             <div className="ProblemSetTitleContainer">
@@ -117,7 +131,8 @@ function ProblemSetCard({problem_set, editMode, deleteMode, is_temp, handleClear
 
             <div className="bottomContainer">
                 <div className="ProblemSetCountContainer">
-                    <span>{problem_set.problem_counts} Problems</span>
+                    <span>{problem_set.problem_counts} Problems</span><br/>
+                    <span>Last Update: {problem_set.last_update_at && formatDate(problem_set.last_update_at)}</span>                      
                 </div>
 
                 <div className="PlayButton">

@@ -12,7 +12,6 @@ import ProblemList from "./components/ProblemList/ProblemList";
 import PendingStartRoom from "./components/PendingStartRoom/PendingStartRoom";
 import PlayerNamePendingPage from "./components/PlayerNamePendingPage/PlayerNamePendingPage";
 import GamePage from "./components/GamePage/GamePage";
-import RankPage from "./components/RankPage/RankPage";
 
 
 
@@ -32,8 +31,6 @@ function App() {
         <Route path="/PendingStartRoom/:userId/:username/:roomId/:problem_set_id" element={<PendingStartRoom/>} />
         <Route path="/PlayerNamePendingPage/:roomId" element={<PlayerNamePendingPage/>}/>
         <Route path="/GamePage/:userId/:username/:roomId/:problem_set_id" element={<GamePage/>} />
-        {/* Remove the rank page component in here, no route is needed for this component */}
-        <Route path="/RankPage" element={<RankPage players={[{playerName: "Wingman", playerScore: 100}]}/>} />
       </Routes>
     </BrowserRouter>
   );

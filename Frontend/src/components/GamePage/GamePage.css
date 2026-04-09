@@ -16,7 +16,6 @@
 
 .ProblemAnswerContainer {
     width: 100%;
-    
 }
 
 
@@ -66,18 +65,8 @@
 }
 
 
-
 .OptionADiv {
     background-color: rgb(235, 84, 84);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 35px;
-}
-
-
-.OptionADiv_disable {
-    background-color: grey;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -88,15 +77,6 @@
 .OptionADiv:hover {
     background-color: rgb(237, 107, 107);
     cursor: pointer;
-}
-
-
-.OptionBDiv_disable {
-    background-color: grey;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 35px;
 }
 
 
@@ -124,15 +104,6 @@
 }
 
 
-.OptionCDiv_disable {
-    background-color: grey;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 35px;
-}
-
-
 .OptionCDiv:hover {
     background-color: rgb(230, 196, 71);
     cursor: pointer;
@@ -147,14 +118,6 @@
     font-size: 35px;
 }
 
-
-.OptionDDiv_disable {
-    background-color: grey;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 35px;
-}
 
 
 .OptionDDiv:hover {
@@ -196,6 +159,22 @@
     width: 150px;
     height: 50px;
     font-family: 'Courier New', Courier, monospace;
+}
+
+
+.CatchUpSpan {
+    animation: fadeInOut 5s infinite;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+
+@keyframes fadeInOut {
+    0%, 100% {
+    opacity: 0;
+    }
+    50% {
+    opacity: 1;
+    }
 }
 
 
