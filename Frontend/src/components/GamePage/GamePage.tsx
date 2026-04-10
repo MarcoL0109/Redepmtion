@@ -29,7 +29,7 @@ function GamePage() {
     const [submittedAnswer, setSubmittedAnswer] = useState<boolean>(false);
     const [blankAnswerInput, setBlankAnswerInput] = useState<string>("");
     const [displayRankingPage, setDisplayRankingPage] = useState<boolean>(false);
-    const [rankingList, setRankingList] = useState<RankPageProps>({players: [{playerName: "", playerScore: 0}]});
+    const [rankingList, setRankingList] = useState<RankPageProps>({players: [{playerName: "", playerScore: 0, playerRank: 1}]});
     const [allProblemsStreamed, setAllProblemStreamed] = useState<boolean>(false); // Not in use yet
     const [pendingResultScreen, setPendingResultScreen] = useState<boolean>(false);
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -159,8 +159,14 @@ function GamePage() {
 
                 socket.on("check-answer-response", ({correct, score}) => {
                     console.log(`Your answer is ${correct ? "correct" : "incorrect"} and current score is ${score}`);
-                    // Need to return the ranking in set and set the states. Once the timer runs out, just pass in the state
-                    // And render the component.
+                })
+
+                socket.on("receive-rank-list", async ({rankList}) => {
+                    setPendingResultScreen(false);
+                    setRankingList(rankList);
+                    setDisplayRankingPage(true);
+                    await sleep(5000);
+                    setDisplayRankingPage(false);
                 })
 
                 socket.on('connect', async () => {
@@ -190,10 +196,9 @@ function GamePage() {
                                         currProblem: problem,
                                     });
                                     await sleep((problem.time_allowed_in_seconds + 3) * 1000);
-                                    setPendingResultScreen(false);
-                                    setDisplayRankingPage(true);
-                                    await sleep(5000); // Set to the ranking page for 6s
-                                    setDisplayRankingPage(false);
+                                    socket.emit("request-rank-list", {
+                                        roomCode: roomId,
+                                    });                                    
                                 }
                                 console.log("All problems have been sent.");
                             })();

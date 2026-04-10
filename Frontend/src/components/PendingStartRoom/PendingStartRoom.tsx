@@ -271,7 +271,7 @@ function PendingStartRoom() {
                                     {
                                         isHost && 
                                         <td className="KickPlayerButtonColumn"> 
-                                            {   index === 1 ?  
+                                            {   index !== 0 ?  
                                                 <button className="KickPlayerButton" onClick={() => handleKickPlayer((index + 1).toString())}>Kick Player</button>:
                                                 null
                                             }

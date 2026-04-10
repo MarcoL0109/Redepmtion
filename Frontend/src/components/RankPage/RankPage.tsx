@@ -7,6 +7,7 @@ import BronzeMedal from "../../assets/bronze_medal.svg";
 
 export interface RankPageProps {
     players: {
+        playerRank: number,
         playerName: string;
         playerScore: number;
     }[];
@@ -21,29 +22,32 @@ function RankPage({players} : RankPageProps) {
             <thead>
                 <tr>
                     <th></th>
-                    <th className={`PlayerListRow_Norm`}>Rank </th>
+                    <th className={`PlayerListRow_Norm`}>Rank</th>
                     <th className={`PlayerListRow_Norm"`}>Player Name</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td><img className="historyImage" src={GoldMedal} alt="Gold Medal Icon"/></td>
-                    <td className={`PlayerListRow_Norm"`}>{1}</td>
-                    <td className={`PlayerListRow_Norm`}>Wingman</td>
-                </tr>
-
-                <tr>
-                    <td><img className="historyImage" src={SilverMedal} alt="Silver Medal Icon"/></td>
-                    <td className={`PlayerListRow_Norm"`}>{2}</td>
-                    <td className={`PlayerListRow_Norm`}>Marco</td>
-                </tr>
-
-                <tr>
-                    <td><img className="historyImage" src={BronzeMedal} alt="Bronze Medal Icon"/></td>
-                    <td className={`PlayerListRow_Norm"`}>{3}</td>
-                    <td className={`PlayerListRow_Norm`}>Testing</td>
-                </tr>
-                    
+                {
+                    players.map((players, index) => 
+                        
+                        <tr key={index}>
+                            {
+                                players.playerRank === 1 && 
+                                <td><img className="historyImage" src={GoldMedal} alt="Gold Medal Icon"/></td>
+                            }
+                            {
+                                players.playerRank === 2 && 
+                                <td><img className="historyImage" src={SilverMedal} alt="Gold Medal Icon"/></td>
+                            }
+                            {
+                                players.playerRank === 3 && 
+                                <td><img className="historyImage" src={BronzeMedal} alt="Gold Medal Icon"/></td>
+                            }
+                            <td className={`PlayerListRow_Norm"`}>{players.playerRank}</td>
+                            <td className={`PlayerListRow_Norm`}>{players.playerName}</td>
+                        </tr>
+                    )
+                } 
             </tbody>
         </table>
     )

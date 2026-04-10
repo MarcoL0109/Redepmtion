@@ -1,4 +1,5 @@
 require('dotenv').config();
+const session = require('express-session');
 const {redisClient, subscriber} = require("../utils/redis");
 const io = require("socket.io")(parseInt(process.env.REACT_APP_SOCKET_SERVER_PORT), {
     cors: {
@@ -22,7 +23,30 @@ async function constructPlayerList(roomCode) {
 
 
 async function constructRankingList(roomCode) {
-
+    const sessionScore = await redisClient.hGetAll(`${roomCode}-Session-Score`);
+    const rankListPromises = Object.keys(sessionScore).map(async (sessionId) => {
+        const username = await redisClient.hGet(`${roomCode}-List`, sessionId);
+        return {
+            playerName: username || "Anonymous", 
+            playerScore: parseInt(sessionScore[sessionId], 10) || 0
+        };
+    });
+    let rankList = await Promise.all(rankListPromises);
+    rankList.sort((a, b) => b.playerScore - a.playerScore);
+    let prev = null, fullRankList = {players: []}, rank = 1;
+    for (let i = 0; i < rankList.length; i++) {
+        const currScore = rankList[i].playerScore;
+        if (prev && prev !== currScore) {
+            rank++;
+        }
+        prev = rankList[i].playerScore;
+        const playerRankObject = {
+            ...rankList[i],
+            playerRank: rank
+        };
+        fullRankList.players.push(playerRankObject);
+    }
+    return fullRankList;
 }
 
 
@@ -186,18 +210,27 @@ io.on("connection", socket => {
     socket.on("submit-client-answer", async (data) => {
         const {question_type, clientAnswer, roomCode, timeSubmitted, sessionId} = data;
         const currProblem = activeRoomProblems.get(roomCode);
-        console.log(`Received answer -> ${clientAnswer}`);
         const correctAnswer = question_type === "MC" ? currProblem.correct_answer.MC : currProblem.correct_answer.Blanks;
-        // Calculate the score based on the speed and correctness?
+        const isCorrectAnswer = correctAnswer === clientAnswer;
         let returnScore = (await redisClient.hGet(`${roomCode}-Session-Score`, sessionId)) ?? 0;
         returnScore = parseInt(returnScore, 10);
-        returnScore += (correctAnswer ? 100 : 0);
-        if (correctAnswer) {
+        returnScore += (isCorrectAnswer ? 100 : 0);
+        if (isCorrectAnswer === true) {
             const scoreForTime = 100 * (timeSubmitted / 100);
             returnScore += scoreForTime;
         }
         await redisClient.hSet(`${roomCode}-Session-Score`, sessionId, returnScore);
-        // Compose the ranking list here
-        io.to(socket.id).emit("check-answer-response", {correct: clientAnswer === correctAnswer, score: returnScore});
+        io.to(socket.id).emit("check-answer-response", {
+            correct: isCorrectAnswer,
+            score: returnScore,
+        });
+    })
+
+
+    socket.on("request-rank-list", async (data) => {
+        const {roomCode} = data;
+        const rankingList = await constructRankingList(roomCode);
+        const roomSocketId = await redisClient.get(roomCode);
+        io.to(roomSocketId).emit("receive-rank-list", {rankList: rankingList});
     })
 })
