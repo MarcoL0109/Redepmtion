@@ -1,0 +1,42 @@
+.leaderboardClass {
+    width: 120px;
+    height: 120px;
+    margin-right: 25px;
+}
+
+.leaderboardClass :hover {
+    cursor: pointer;
+}
+
+.terminateRoomClass {
+    width: 90px;
+    height: 80px;
+}
+
+.terminateRoomClass :hover {
+    cursor: pointer;
+}
+
+.hostNavBarButton {
+    display: flex;
+    align-items: center;
+}
+
+.hostNavBarContainer {
+    display: flex;
+    justify-content: end;
+    margin-right: 25px
+}
+
+.hostNavBar {
+    background-color: #52514F;
+}
+
+.terminateRoomClassContainer :hover {
+    cursor: pointer;
+}
+
+.leaderboardClassContainer {
+    cursor: pointer;
+}
+

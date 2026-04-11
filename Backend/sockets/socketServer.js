@@ -21,15 +21,20 @@ async function constructPlayerList(roomCode) {
     return player_list_names
 }
 
-
+// The host should be no be listed in the leaderboard
 async function constructRankingList(roomCode) {
     const sessionScore = await redisClient.hGetAll(`${roomCode}-Session-Score`);
-    const rankListPromises = Object.keys(sessionScore).map(async (sessionId) => {
-        const username = await redisClient.hGet(`${roomCode}-List`, sessionId);
-        return {
-            playerName: username || "Anonymous", 
-            playerScore: parseInt(sessionScore[sessionId], 10) || 0
-        };
+    const roomHost = await redisClient.get(`${roomCode}-Host`);
+    const rankListPromises = Object.keys(sessionScore)
+        .filter(sessionId => sessionId !== roomHost)
+        .map(async (sessionId) => {
+            const username = await redisClient.hGet(`${roomCode}-List`, sessionId);
+            const playerIndex = await redisClient.hGet(`${roomCode}-Session-Player`, sessionId);
+            return {
+                playerIndex: playerIndex,
+                playerName: username || "Anonymous", 
+                playerScore: parseInt(sessionScore[sessionId], 10) || 0
+            };
     });
     let rankList = await Promise.all(rankListPromises);
     rankList.sort((a, b) => b.playerScore - a.playerScore);
@@ -119,6 +124,7 @@ io.on("connection", socket => {
             const myPlayerIndex = await redisClient.hGet(`${roomCode}-Session-Player`, clientSessionId);
             await redisClient.hDel(`${roomCode}-Session-Player`, clientSessionId);
             await redisClient.hDel(`${roomCode}-Player-Session`, myPlayerIndex);
+            await redisClient.hDel(`${roomCode}-Session-Score`, clientSessionId);
             const player_list_names = await constructPlayerList(roomCode);
             io.to(roomSocketId).emit("returned-player-list", player_list_names);
         } else {
@@ -189,6 +195,20 @@ io.on("connection", socket => {
         io.to(roomSocketId).emit("redirect-room-members");
     })
 
+
+    socket.on("start-count-down", async (data) => {
+        const {roomCode, countDownSeconds} = data;
+        const roomSocketId = await redisClient.get(roomCode);
+        let secondsLeft = countDownSeconds;
+        const countdown = setInterval(() => {
+            io.to(roomSocketId).emit("receive-new-countdown-time", {secondsLeft: secondsLeft});
+            secondsLeft--;
+            if (secondsLeft < 0) {
+                clearInterval(countdown);
+            }
+        }, 1000);
+    })
+
     
     socket.on("request-send-problems", async (data) => {
         const {roomCode, currProblem} = data;
@@ -211,7 +231,15 @@ io.on("connection", socket => {
         const {question_type, clientAnswer, roomCode, timeSubmitted, sessionId} = data;
         const currProblem = activeRoomProblems.get(roomCode);
         const correctAnswer = question_type === "MC" ? currProblem.correct_answer.MC : currProblem.correct_answer.Blanks;
-        const isCorrectAnswer = correctAnswer === clientAnswer;
+        const isCaseSensitive = currProblem.case_sensitive;
+        let isCorrectAnswer = false;
+        if (isCaseSensitive) {
+            isCorrectAnswer = correctAnswer === clientAnswer;
+        } else {
+            const lowerCaseCorrectAnswer = correctAnswer.toLowerCase();
+            const lowerCaseClientAnswer = clientAnswer.toLowerCase();
+            isCorrectAnswer = lowerCaseClientAnswer === lowerCaseCorrectAnswer;
+        }
         let returnScore = (await redisClient.hGet(`${roomCode}-Session-Score`, sessionId)) ?? 0;
         returnScore = parseInt(returnScore, 10);
         returnScore += (isCorrectAnswer ? 100 : 0);
@@ -232,5 +260,12 @@ io.on("connection", socket => {
         const rankingList = await constructRankingList(roomCode);
         const roomSocketId = await redisClient.get(roomCode);
         io.to(roomSocketId).emit("receive-rank-list", {rankList: rankingList});
+    })
+
+
+    socket.on("init-ranklist-ref", async (data) => {
+        const {roomCode} = data;
+        const rankingList = await constructRankingList(roomCode);
+        io.to(socket.id).emit("set-ranklist-ref", {rankList: rankingList});
     })
 })

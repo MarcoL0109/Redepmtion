@@ -6,7 +6,8 @@ import { Problem } from "../ProblemList/ProblemList";
 import ProgressLine from "../ProgressBar/ProgressBar"
 import RankPage from "../RankPage/RankPage";
 import {RankPageProps} from "../RankPage/RankPage";
-import { Mosaic } from "react-loading-indicators";
+import HostNavBar from "../HostNavBar/HostNavBar";
+import Overlays from "../Overlays/Overlay";
 
 
 function GamePage() {
@@ -23,25 +24,31 @@ function GamePage() {
     const navigate = useNavigate();
     const {userId, username, roomId, problem_set_id} = useParams();
     const [isHost, setIsHost] = useState<boolean>(false);
+    const isHostRef = useRef(isHost);
     const [countDown, setCountDown] = useState<number>(3);
     const [currentDisplayProblem, setCurrentDisplayProblem] = useState<Problem>();
     const [currentTime, setCurrentTimer] = useState<number>(100);
     const [submittedAnswer, setSubmittedAnswer] = useState<boolean>(false);
     const [blankAnswerInput, setBlankAnswerInput] = useState<string>("");
     const [displayRankingPage, setDisplayRankingPage] = useState<boolean>(false);
-    const [rankingList, setRankingList] = useState<RankPageProps>({players: [{playerName: "", playerScore: 0, playerRank: 1}]});
+    const [rankingList, setRankingList] = useState<RankPageProps>({players: [{playerIndex: 1, playerName: "", playerScore: 0, playerRank: 1}], isHost: false});
+    const rankListRef = useRef(rankingList);
     const [allProblemsStreamed, setAllProblemStreamed] = useState<boolean>(false); // Not in use yet
     const [pendingResultScreen, setPendingResultScreen] = useState<boolean>(false);
+    const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
+    const [hostLeave, setHostLeave] = useState<boolean>(false);
+    const [isRankListOverlayOpen, setIsRankListOverlayOpen] = useState<boolean>(false);
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
     useEffect(() => {
-        if (countDown === 0) return;
-        const intervalId = setInterval(() => {
-            setCountDown(prevCountdown => prevCountdown - 1);
-        }, 1000);
-        return () => clearInterval(intervalId);
-    }, [countDown]);
+        isHostRef.current = isHost;
+    }, [isHost]);
+
+
+    useEffect(() => {
+        rankListRef.current = rankingList;
+    }, [rankingList]);
 
 
     const getRoomSocketId = async (room_code: string) => {
@@ -143,7 +150,15 @@ function GamePage() {
             if (roomExist.status !== 200) {
                 navigate("/");
             }
-            await sleep((2) * 1000);
+
+            socket.emit("init-ranklist-ref", {
+                roomCode: roomId,
+            });
+            
+            socket.emit("start-count-down", {
+                roomCode: roomId,
+                countDownSeconds: 3,
+            })
             const session = await getSessionID();
             try {
                 if (!mounted) return;
@@ -159,6 +174,28 @@ function GamePage() {
 
                 socket.on("check-answer-response", ({correct, score}) => {
                     console.log(`Your answer is ${correct ? "correct" : "incorrect"} and current score is ${score}`);
+                })
+
+                socket.on("receive-new-countdown-time", ({secondsLeft}) => {
+                    setCountDown(secondsLeft);
+                })
+
+                socket.on("set-ranklist-ref", ({rankList}) => {
+                    setRankingList(rankList);
+                })
+
+                socket.on("room-closed", ({reason, message}) => {
+                    console.log(message);
+                    if (reason === "Terminated") {
+                        navigate("/", { state: {roomClosed: true, isHost: isHostRef.current} });
+                    } else {
+                        navigate("/", { state: {inActiveRoomClosed: true} });
+                    }     
+                })
+
+                socket.on("kick-player-message", (message) => {
+                    console.log(message);
+                    navigate("/", { state: {kickMessage: true} });
                 })
 
                 socket.on("receive-rank-list", async ({rankList}) => {
@@ -190,7 +227,6 @@ function GamePage() {
                         if (checkIsHost === true) {
                             (async () => {
                                 for (const problem of problemList) {
-                                    setCurrentTimer(100);
                                     socket.emit("request-send-problems", {
                                         roomCode: roomId,
                                         currProblem: problem,
@@ -198,7 +234,9 @@ function GamePage() {
                                     await sleep((problem.time_allowed_in_seconds + 3) * 1000);
                                     socket.emit("request-rank-list", {
                                         roomCode: roomId,
-                                    });                                    
+                                    });
+                                    
+                                    await sleep(3000); // sleep here so that the timer does not go off when the problems are displayed                                    
                                 }
                                 console.log("All problems have been sent.");
                             })();
@@ -245,20 +283,96 @@ function GamePage() {
 
     const handleSubmitFormAnswer = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        const session = await getSessionID();
         if (socketRef.current) {
             socketRef.current.emit("submit-client-answer", {
                 question_type: "Blanks",
                 clientAnswer: blankAnswerInput,
                 roomCode: roomId,
                 timeSubmitted: currentTime,
+                sessionId: session
             });
             setPendingResultScreen(true);
         }
     }
 
 
+    const handleCloseOverlay = () => {
+        setHostLeave(false);
+        setIsOverlayOpen(false);
+    }
+
+
+    const handleOpenTerminateOverlay = () => {
+        setHostLeave(true);
+        setIsOverlayOpen(true)
+    }
+
+
+    const handleLeaveRoom = async () => {
+        if (socketRef.current) {
+            const session = await getSessionID();
+            socketRef.current.emit("leave-room", {
+                roomCode: roomId,
+                isHost: isHost,
+                clientSessionId: session
+            })
+        }
+    }
+
+
+    const handleDisplayLeaderBoard = () => {
+        setIsRankListOverlayOpen(true);
+    }
+
+
+    const handleCloseRankListOverlay = () => {
+        setIsRankListOverlayOpen(false);
+    }
+
+
+    const handleKickPlayer = async (targetIndex: string) => {
+        if (socketRef.current) {
+            const updatedList = rankListRef.current.players.filter(
+                player => player.playerIndex.toString() !== targetIndex
+            );
+            setRankingList({ players: updatedList, isHost: isHostRef.current }); 
+            rankListRef.current.players = updatedList;
+            socketRef.current.emit("kick-player", {
+                roomCode: roomId,
+                playerIndex: targetIndex,
+            })
+        }
+    }
+
+
     return (
         <div className="GamePageContainer">
+
+            <Overlays isOpen={isOverlayOpen}>
+                <div>
+                    <div>
+                        <h2>{hostLeave ? "Ending" : "Leaving"} the Party Before It Ends?</h2>
+                        <p>You are about to {hostLeave ? "terminate" : "leave"} this room. Are you sure you want to {hostLeave ? "end" : "leave"} this party before it starts?</p>
+                    </div>
+                    <div className="overlay__buttons">
+                        <button className="confirmDelete" onClick={handleLeaveRoom}>Confirm</button>
+                        <button className="cancelDelete" onClick={handleCloseOverlay}>Cancel</button>
+                    </div>
+                </div> 
+            </Overlays>
+
+            <Overlays isOpen={isRankListOverlayOpen}>
+                <div>
+                    <div className="RankListOverlay">
+                        <RankPage players={rankListRef.current.players} isHost={isHostRef.current} handleKickPlayer={handleKickPlayer}/>
+                    </div>
+                    <div className="overlay__buttons">
+                        <button className="cancelDelete" onClick={handleCloseRankListOverlay}>Cancel</button>
+                    </div>
+                </div>  
+            </Overlays> 
+
             {
                 countDown > 0 &&
                 <div className="CountDownContainer">
@@ -269,6 +383,13 @@ function GamePage() {
             {
                 (countDown === 0 && !displayRankingPage && !pendingResultScreen) &&
                 <div className="ProblemAnswerContainer">
+                    {
+                        isHost &&
+                        <HostNavBar 
+                            handleOpenTerminateOverlay={handleOpenTerminateOverlay}
+                            handleDisplayLeaderBoard={handleDisplayLeaderBoard}
+                        />
+                    }
                     <div className="ProgressBarContainer">
                         <ProgressLine
                             label={displayRankingPage}
@@ -298,6 +419,11 @@ function GamePage() {
                             <div className="BlankAnswerContainer">
                                 <form className="BlankFormContainer" onSubmit={handleSubmitFormAnswer}>
                                     <div className="InputSubmitContainer">
+                                        {
+                                            currentDisplayProblem?.case_sensitive ?
+                                            <span className="CaseSensitiveNoti">{"Note: Case Sensitive"}</span> :
+                                            null
+                                        }
                                         <div>
                                             <input className="BlankAnswerInput" 
                                             type="text"
@@ -319,9 +445,8 @@ function GamePage() {
             }
 
             {
-                // I was making this, I forgot...
                 displayRankingPage &&
-                <RankPage players={rankingList.players}/>
+                <RankPage players={rankingList.players} isHost={false}/>
             }
 
             {

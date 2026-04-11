@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./ProgressBar.css";
 
-// 1. Define the Interfaces
 interface VisualPart {
     percentage: string;
     color: string;

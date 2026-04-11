@@ -8,6 +8,7 @@
 
 .ProblemSetCards:hover {
     background-color: #5a5a62;
+    cursor: pointer;
 }
 
 .FixedProblemSetCards {

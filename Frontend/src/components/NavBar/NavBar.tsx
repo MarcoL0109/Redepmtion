@@ -11,6 +11,7 @@ interface NavBarProps {
 
 const NavBar: React.FC<NavBarProps> = ({user_data}) => {
 
+    // @ts-ignore
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL;
     const navigate = useNavigate();
     const [isDisplay, setIsDisplay] = useState<boolean>(false);

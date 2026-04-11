@@ -46,9 +46,14 @@
     align-items: center;
     justify-content: center;
     height: 55%;
-    width: 55%;
+    width: 65%;
     font-family: 'Courier New', Courier, monospace;
     font-size: 35px;
+}
+
+
+.CaseSensitiveNoti {
+    font-family: 'Courier New', Courier, monospace;
 }
 
 
@@ -175,6 +180,18 @@
     50% {
     opacity: 1;
     }
+}
+
+.RankListOverlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 550px;
+}
+
+.overlay__buttons {
+    display: flex;
+    justify-content: center;
 }
 
 

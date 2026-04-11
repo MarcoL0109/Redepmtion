@@ -7,14 +7,17 @@ import BronzeMedal from "../../assets/bronze_medal.svg";
 
 export interface RankPageProps {
     players: {
+        playerIndex: number,
         playerRank: number,
         playerName: string;
         playerScore: number;
-    }[];
+    }[],
+    isHost: boolean,
+    handleKickPlayer?: (index: string) => void,
 }
 
 
-function RankPage({players} : RankPageProps) {
+function RankPage({players, isHost, handleKickPlayer} : RankPageProps) {
 
 
     return (
@@ -24,6 +27,7 @@ function RankPage({players} : RankPageProps) {
                     <th></th>
                     <th className={`PlayerListRow_Norm`}>Rank</th>
                     <th className={`PlayerListRow_Norm"`}>Player Name</th>
+                    <th className={`PlayerListRow_Norm"`}>Score</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,6 +49,13 @@ function RankPage({players} : RankPageProps) {
                             }
                             <td className={`PlayerListRow_Norm"`}>{players.playerRank}</td>
                             <td className={`PlayerListRow_Norm`}>{players.playerName}</td>
+                            <td className={`PlayerListRow_Norm`}>{players.playerScore}</td>
+                            {
+                                (isHost && handleKickPlayer) &&
+                                <td>
+                                    <button className="KickPlayerButton" onClick={() => handleKickPlayer((players.playerIndex).toString())}>Kick Player</button>
+                                </td>
+                            }
                         </tr>
                     )
                 } 

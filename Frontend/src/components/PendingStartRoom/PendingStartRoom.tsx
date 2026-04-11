@@ -179,72 +179,72 @@ function PendingStartRoom() {
         }, []);
 
 
-        const triggerTerminateOverlay = async () => {
-            setIsOverlayOpen(true);
-            setHostLeave(true);
-        }
+    const triggerTerminateOverlay = async () => {
+        setIsOverlayOpen(true);
+        setHostLeave(true);
+    }
 
 
-        const triggerLeaveOverlay = () => {
-            setIsOverlayOpen(true);
-            setPartLeave(true);
-        }
+    const triggerLeaveOverlay = () => {
+        setIsOverlayOpen(true);
+        setPartLeave(true);
+    }
 
 
-        const handleLeaveRoom = async () => {
-            if (socketRef.current) {
-                const session = await getSessionID();
-                socketRef.current.emit("leave-room", {
-                    roomCode: roomId,
-                    isHost: isHost,
-                    clientSessionId: session
-                });
-            }
-            if (partLeave) {
-                navigate("/")
-            }
-            setIsOverlayOpen(false);
-        }
-
-
-        const handleCloseOverlay = () => {
-            setIsOverlayOpen(false);
-            setHostLeave(false);
-            setPartLeave(false);
-        }
-
-
-        const handleKickPlayer = async (index: string) => {
-            if (socketRef.current) {
-                socketRef.current.emit("kick-player", {
-                    roomCode: roomId,
-                    playerIndex: index.toString(),
-                })
-            }
-        }
-
-
-        const handleLockRoom = () => {
-            setToggleLock(prev => {
-                const newPrev = !prev;
-                if (socketRef.current) {
-                    socketRef.current.emit("set-lock-state", {
-                        roomCode: roomId,
-                        isLock: Number(newPrev).toString(),
-                    })
-                }
-                return newPrev;
+    const handleLeaveRoom = async () => {
+        if (socketRef.current) {
+            const session = await getSessionID();
+            socketRef.current.emit("leave-room", {
+                roomCode: roomId,
+                isHost: isHost,
+                clientSessionId: session
             });
         }
-
-
-        const handleStartRoom = () => {
-            if (socketRef.current) {
-                socketRef.current.emit("initialize-room-start", {
-                    roomCode: roomId,
-                });
-            }
+        if (partLeave) {
+            navigate("/")
         }
+        setIsOverlayOpen(false);
+    }
+
+
+    const handleCloseOverlay = () => {
+        setIsOverlayOpen(false);
+        setHostLeave(false);
+        setPartLeave(false);
+    }
+
+
+    const handleKickPlayer = async (index: string) => {
+        if (socketRef.current) {
+            socketRef.current.emit("kick-player", {
+                roomCode: roomId,
+                playerIndex: index.toString(),
+            })
+        }
+    }
+
+
+    const handleLockRoom = () => {
+        setToggleLock(prev => {
+            const newPrev = !prev;
+            if (socketRef.current) {
+                socketRef.current.emit("set-lock-state", {
+                    roomCode: roomId,
+                    isLock: Number(newPrev).toString(),
+                })
+            }
+            return newPrev;
+        });
+    }
+
+
+    const handleStartRoom = () => {
+        if (socketRef.current) {
+            socketRef.current.emit("initialize-room-start", {
+                roomCode: roomId,
+            });
+        }
+    }
 
     
     return (
