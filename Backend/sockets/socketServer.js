@@ -21,8 +21,8 @@ async function constructPlayerList(roomCode) {
     return player_list_names
 }
 
-// The host should be no be listed in the leaderboard
-async function constructRankingList(roomCode) {
+
+async function constructPlayerOrder(roomCode) {
     const sessionScore = await redisClient.hGetAll(`${roomCode}-Session-Score`);
     const roomHost = await redisClient.get(`${roomCode}-Host`);
     const rankListPromises = Object.keys(sessionScore)
@@ -31,13 +31,20 @@ async function constructRankingList(roomCode) {
             const username = await redisClient.hGet(`${roomCode}-List`, sessionId);
             const playerIndex = await redisClient.hGet(`${roomCode}-Session-Player`, sessionId);
             return {
-                playerIndex: playerIndex,
+                playerIndex: parseInt(playerIndex, 10),
                 playerName: username || "Anonymous", 
-                playerScore: parseInt(sessionScore[sessionId], 10) || 0
+                playerScore: parseInt(sessionScore[sessionId], 10) || 0,
+                sessionId: sessionId,
             };
     });
     let rankList = await Promise.all(rankListPromises);
     rankList.sort((a, b) => b.playerScore - a.playerScore);
+    return rankList;
+}
+
+// The host should be no be listed in the leaderboard
+async function constructRankingList(roomCode) {
+    const rankList = await constructPlayerOrder(roomCode);
     let prev = null, fullRankList = {players: []}, rank = 1;
     for (let i = 0; i < rankList.length; i++) {
         const currScore = rankList[i].playerScore;
@@ -45,8 +52,9 @@ async function constructRankingList(roomCode) {
             rank++;
         }
         prev = rankList[i].playerScore;
+        const { sessionId, ...playerData } = rankList[i];
         const playerRankObject = {
-            ...rankList[i],
+            ...playerData,
             playerRank: rank
         };
         fullRankList.players.push(playerRankObject);
@@ -263,9 +271,36 @@ io.on("connection", socket => {
     })
 
 
-    socket.on("init-ranklist-ref", async (data) => {
-        const {roomCode} = data;
+    socket.on("init-game-info", async (data) => {
+        const {roomCode, sessionId} = data;
         const rankingList = await constructRankingList(roomCode);
+        const playerIndex = await redisClient.hGet(`${roomCode}-Session-Player`, sessionId);
         io.to(socket.id).emit("set-ranklist-ref", {rankList: rankingList});
+        io.to(socket.id).emit("set-player-index", {playerIndex: parseInt(playerIndex, 10)});
+    })
+
+
+    socket.on("request-display-correct-answer", async (data) => {
+        const {roomCode} = data;
+        const roomSocketId = await redisClient.get(roomCode);
+        io.to(roomSocketId).emit("display-correct-answer");
+    })
+
+    
+    socket.on("request-direct-result-page", async (data) => {
+        const {roomCode} = data;
+        const rankList = await constructPlyaerOrder(roomCode);
+        const hostSocketId = await redisClient.get(`${roomCode}-Host`);
+        let prev = null, rank = 1;
+        for (let i = 0; i < rankList.length; i++) {
+            const currScore = rankList[i].playerScore;
+            if (prev && prev !== currScore) {
+                rank++;
+            }
+            prev = rankList[i].playerScore;
+            const playerSession = rankList[i].sessionId;
+            const playerSocketId = await redisClient.hGet(`${roomCode}-Session-Socket`, playerSession);
+            io.to(playerSocketId).emit("redirect-player-result-page", {playerRank: rank});
+        }
     })
 })

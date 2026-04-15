@@ -12,7 +12,7 @@ import ProblemList from "./components/ProblemList/ProblemList";
 import PendingStartRoom from "./components/PendingStartRoom/PendingStartRoom";
 import PlayerNamePendingPage from "./components/PlayerNamePendingPage/PlayerNamePendingPage";
 import GamePage from "./components/GamePage/GamePage";
-
+import ResultPage from "./components/ResultPage/ResultPage";
 
 
 function App() {
@@ -31,6 +31,7 @@ function App() {
         <Route path="/PendingStartRoom/:userId/:username/:roomId/:problem_set_id" element={<PendingStartRoom/>} />
         <Route path="/PlayerNamePendingPage/:roomId" element={<PlayerNamePendingPage/>}/>
         <Route path="/GamePage/:userId/:username/:roomId/:problem_set_id" element={<GamePage/>} />
+        <Route path="/ResultPage/:userId/:username/:roomId" element={<ResultPage/>} />
       </Routes>
     </BrowserRouter>
   );

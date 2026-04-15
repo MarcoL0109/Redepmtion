@@ -29,6 +29,10 @@
     
 }
 
+.BlankCorrectAnswer {
+    margin-top: 25px;
+}
+
 
 .AnswerOptionContainer {
     background-color: white;
@@ -72,6 +76,152 @@
 
 .OptionADiv {
     background-color: rgb(235, 84, 84);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+.OptionADiv_correct {
+    background-color: rgb(8, 238, 8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionADiv_wrong {
+    background-color: rgb(231, 73, 73);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionADiv_correct_selected {
+    background-color: rgb(8, 238, 8);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionADiv_wrong_selected {
+    background-color: rgb(231, 73, 73);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+.OptionBDiv_correct_selected {
+    background-color: rgb(8, 238, 8);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionBDiv_wrong_selected {
+    background-color: rgb(231, 73, 73);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+.OptionCDiv_correct_selected {
+    background-color: rgb(8, 238, 8);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionCDiv_wrong_selected {
+    background-color: rgb(231, 73, 73);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+.OptionDDiv_correct_selected {
+    background-color: rgb(8, 238, 8);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionDDiv_wrong_selected {
+    background-color: rgb(231, 73, 73);
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionBDiv_correct {
+    background-color: rgb(8, 238, 8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionBDiv_wrong {
+    background-color: rgb(231, 73, 73);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+.OptionCDiv_correct {
+    background-color: rgb(8, 238, 8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionCDiv_wrong {
+    background-color: rgb(231, 73, 73);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+.OptionDDiv_correct {
+    background-color: rgb(8, 238, 8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 35px;
+}
+
+
+.OptionDDiv_wrong {
+    background-color: rgb(231, 73, 73);
     display: flex;
     align-items: center;
     justify-content: center;

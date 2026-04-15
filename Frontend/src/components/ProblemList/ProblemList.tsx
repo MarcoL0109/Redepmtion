@@ -35,6 +35,7 @@ interface ObejctForAPI {
 }
 
 export interface AnswerOptions {
+    [key: string]: string;
     "A": string,
     "B": string,
     "C": string,

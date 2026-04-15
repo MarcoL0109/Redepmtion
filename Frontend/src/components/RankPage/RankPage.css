@@ -1,0 +1,13 @@
+.rankListRow_self {
+    background-color: rgb(211, 206, 206);
+}
+
+.rankListRow_self td:first-child {
+    border-top-left-radius: 15px;
+    border-bottom-left-radius: 15px;
+}
+
+.rankListRow_self td:last-child {
+    border-top-right-radius: 15px;
+    border-bottom-right-radius: 15px;
+}

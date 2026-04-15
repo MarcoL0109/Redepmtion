@@ -38,6 +38,9 @@ function GamePage() {
     const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
     const [hostLeave, setHostLeave] = useState<boolean>(false);
     const [isRankListOverlayOpen, setIsRankListOverlayOpen] = useState<boolean>(false);
+    const [playerIndex, setPlayerIndex] = useState<number>(-1);
+    const [displayCorrectAnswer, setDisplayCorrectAnswer] = useState<boolean>(false);
+    const [selectedOption, setSelectedOption] = useState<string>("");
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
@@ -151,21 +154,25 @@ function GamePage() {
                 navigate("/");
             }
 
-            socket.emit("init-ranklist-ref", {
+            const session = await getSessionID();
+
+            socket.emit("init-game-info", {
                 roomCode: roomId,
+                sessionId: session,
             });
             
             socket.emit("start-count-down", {
                 roomCode: roomId,
                 countDownSeconds: 3,
             })
-            const session = await getSessionID();
+            
             try {
                 if (!mounted) return;
 
                 socket.on("receive-problem", ({ problem }) => {
                     setSubmittedAnswer(false);
                     setCurrentDisplayProblem(problem);
+                    console.log("Recieved Problem", problem)
                 });
 
                 socket.on("receive-new-timer-percentage", ({ newPercentage }) => {
@@ -184,6 +191,10 @@ function GamePage() {
                     setRankingList(rankList);
                 })
 
+                socket.on("set-player-index", ({playerIndex}) => {
+                    setPlayerIndex(playerIndex);
+                })
+
                 socket.on("room-closed", ({reason, message}) => {
                     console.log(message);
                     if (reason === "Terminated") {
@@ -199,11 +210,20 @@ function GamePage() {
                 })
 
                 socket.on("receive-rank-list", async ({rankList}) => {
-                    setPendingResultScreen(false);
+                    setDisplayCorrectAnswer(false);
                     setRankingList(rankList);
                     setDisplayRankingPage(true);
                     await sleep(5000);
                     setDisplayRankingPage(false);
+                })
+
+                socket.on("display-correct-answer", () => {
+                    setPendingResultScreen(false);
+                    setDisplayCorrectAnswer(true);
+                })
+
+                socket.on("redirect-player-result-page", async ({playerRank}) => {
+                    navigate(`/ResultPage/${userId}/${username}/${roomId}`, { state: {rankList: rankListRef.current, playerRank: playerRank, isHost: isHostRef.current} });
                 })
 
                 socket.on('connect', async () => {
@@ -217,30 +237,39 @@ function GamePage() {
                         roomCode: roomId,
                         sessionId: session,
                         playerName: username,
-                        isLocked: "0",
+                        isLocked: "1",
                     }, (err: Error, playerList: String[]) => {
                         if (err) {
                             console.error('join-room error', err);
                             navigate("/");
                             return;
                         }
-                        if (checkIsHost === true) {
-                            (async () => {
-                                for (const problem of problemList) {
-                                    socket.emit("request-send-problems", {
-                                        roomCode: roomId,
-                                        currProblem: problem,
-                                    });
-                                    await sleep((problem.time_allowed_in_seconds + 3) * 1000);
+                        if (!checkIsHost) return;
+                        (async () => {
+                            for (let i = 0; i < problemList.length; i++) {
+                                const problem = problemList[i];
+                                socket.emit("request-send-problems", {
+                                    roomCode: roomId,
+                                    currProblem: problem,
+                                });
+                                await sleep((problem.time_allowed_in_seconds + 3) * 1000);
+
+                                socket.emit("request-display-correct-answer", {
+                                    roomCode: roomId,
+                                })
+                                await sleep(3000);
+                                if (i + 1 < problemList.length) {
                                     socket.emit("request-rank-list", {
                                         roomCode: roomId,
                                     });
-                                    
-                                    await sleep(3000); // sleep here so that the timer does not go off when the problems are displayed                                    
-                                }
-                                console.log("All problems have been sent.");
-                            })();
-                        }
+                                    await sleep(3000); // sleep here so that the timer does not go off when the problems are displayed 
+                                }                        
+                            }
+                            socket.emit("request-direct-result-page", {
+                                roomCode: roomId,
+                            });
+                            navigate(`/ResultPage/${userId}/${username}/${roomId}`, { state: {rankList: rankListRef.current, playerRank: -1, isHost: isHostRef.current} });
+                        })();
                     });
                 });
                 socket.connect();
@@ -263,11 +292,12 @@ function GamePage() {
 
 
     const handleSubmitClientAnswer = async (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!submittedAnswer) {
+        if (!submittedAnswer && currentTime > 0) {
             const selectedId = e.currentTarget.dataset.id;
             const session = await getSessionID();
             if (selectedId && socketRef.current) {
                 const splitAnswer = selectedId.split("-");
+                setSelectedOption(splitAnswer[splitAnswer.length - 1])
                 socketRef.current.emit("submit-client-answer", {
                     question_type: "MC",
                     clientAnswer: splitAnswer[splitAnswer.length - 1],
@@ -381,7 +411,8 @@ function GamePage() {
             }
 
             {
-                (countDown === 0 && !displayRankingPage && !pendingResultScreen) &&
+                ((countDown === 0 && !displayRankingPage && !pendingResultScreen) || displayCorrectAnswer) &&
+                
                 <div className="ProblemAnswerContainer">
                     {
                         isHost &&
@@ -411,10 +442,10 @@ function GamePage() {
                         {
                             currentDisplayProblem?.question_type === "Multiple Choice" ?
                             <div className="OptionsContainer">
-                                <div className="OptionADiv" data-id="option-A" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.A}</div>
-                                <div className="OptionBDiv" data-id="option-B" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.B}</div>
-                                <div className="OptionCDiv" data-id="option-C" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.C}</div>
-                                <div className="OptionDDiv" data-id="option-D" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.D}</div>
+                                <div className={displayCorrectAnswer ? `OptionADiv${currentDisplayProblem.correct_answer.MC === 'A' ? "_correct" : "_wrong"}${selectedOption === 'A' ? "_selected" : ""}` : "OptionADiv"} data-id="option-A" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.A}</div>
+                                <div className={displayCorrectAnswer ? `OptionBDiv${currentDisplayProblem.correct_answer.MC === 'B' ? "_correct" : "_wrong"}${selectedOption === 'B' ? "_selected" : ""}` : "OptionBDiv"} data-id="option-B" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.B}</div>
+                                <div className={displayCorrectAnswer ? `OptionCDiv${currentDisplayProblem.correct_answer.MC === 'C' ? "_correct" : "_wrong"}${selectedOption === 'C' ? "_selected" : ""}` : "OptionCDiv"} data-id="option-C" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.C}</div>
+                                <div className={displayCorrectAnswer ? `OptionDDiv${currentDisplayProblem.correct_answer.MC === 'D' ? "_correct" : "_wrong"}${selectedOption === 'D' ? "_selected" : ""}` : "OptionDDiv"} data-id="option-D" onClick={handleSubmitClientAnswer}>{currentDisplayProblem?.answer_options.D}</div>
                             </div> :
                             <div className="BlankAnswerContainer">
                                 <form className="BlankFormContainer" onSubmit={handleSubmitFormAnswer}>
@@ -425,17 +456,24 @@ function GamePage() {
                                             null
                                         }
                                         <div>
-                                            <input className="BlankAnswerInput" 
-                                            type="text"
-                                            placeholder="Type Your Answer"
-                                            readOnly={submittedAnswer}
-                                            value={blankAnswerInput}
-                                            required
-                                            onChange={(e) => {setBlankAnswerInput(e.target.value)}}/>
+                                            {
+                                                <input className="BlankAnswerInput" 
+                                                type="text"
+                                                placeholder="Type Your Answer"
+                                                readOnly={submittedAnswer}
+                                                value={blankAnswerInput}
+                                                required
+                                                onChange={(e) => {setBlankAnswerInput(e.target.value)}}/> 
+                                            }
+                                            
                                         </div>
-                                        <button className="BlankAnswerSubmitButton" type="submit" disabled={submittedAnswer}>
-                                            <strong>Confirm</strong>
-                                        </button>
+                                        {
+                                            !displayCorrectAnswer ?
+                                            <button className="BlankAnswerSubmitButton" type="submit" disabled={submittedAnswer || currentTime === 0}>
+                                                <strong>Confirm</strong>
+                                            </button> :
+                                            <span className="BlankCorrectAnswer">{`Correct Answer: ${currentDisplayProblem?.correct_answer.Blanks}`}</span>
+                                        }
                                     </div>
                                 </form>
                             </div>
@@ -446,7 +484,7 @@ function GamePage() {
 
             {
                 displayRankingPage &&
-                <RankPage players={rankingList.players} isHost={false}/>
+                <RankPage players={rankingList.players} isHost={false} clientPlayerIndex={playerIndex}/>
             }
 
             {

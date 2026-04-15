@@ -1,6 +1,7 @@
 import GoldMedal from "../../assets/gold_medal.svg";
 import SilverMedal from "../../assets/silver_medal.svg";
 import BronzeMedal from "../../assets/bronze_medal.svg";
+import "./RankPage.css";
 
 
 
@@ -13,11 +14,12 @@ export interface RankPageProps {
         playerScore: number;
     }[],
     isHost: boolean,
+    clientPlayerIndex?: number,
     handleKickPlayer?: (index: string) => void,
 }
 
 
-function RankPage({players, isHost, handleKickPlayer} : RankPageProps) {
+function RankPage({players, isHost, clientPlayerIndex, handleKickPlayer} : RankPageProps) {
 
 
     return (
@@ -33,8 +35,7 @@ function RankPage({players, isHost, handleKickPlayer} : RankPageProps) {
             <tbody>
                 {
                     players.map((players, index) => 
-                        
-                        <tr key={index}>
+                        <tr key={index} className={`rankListRow${clientPlayerIndex === players.playerIndex ? "_self" : ""}`}>
                             {
                                 players.playerRank === 1 && 
                                 <td><img className="historyImage" src={GoldMedal} alt="Gold Medal Icon"/></td>
