@@ -27,7 +27,7 @@ function GamePage() {
     const isHostRef = useRef(isHost);
     const [countDown, setCountDown] = useState<number>(3);
     const [currentDisplayProblem, setCurrentDisplayProblem] = useState<Problem>();
-    const [currentTime, setCurrentTimer] = useState<number>(100);
+    const [currentTime, setCurrentTime] = useState<number>(100);
     const [submittedAnswer, setSubmittedAnswer] = useState<boolean>(false);
     const [blankAnswerInput, setBlankAnswerInput] = useState<string>("");
     const [displayRankingPage, setDisplayRankingPage] = useState<boolean>(false);
@@ -39,6 +39,7 @@ function GamePage() {
     const [hostLeave, setHostLeave] = useState<boolean>(false);
     const [isRankListOverlayOpen, setIsRankListOverlayOpen] = useState<boolean>(false);
     const [playerIndex, setPlayerIndex] = useState<number>(-1);
+    const playerIndexRef = useRef(-1);
     const [displayCorrectAnswer, setDisplayCorrectAnswer] = useState<boolean>(false);
     const [selectedOption, setSelectedOption] = useState<string>("");
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -47,6 +48,11 @@ function GamePage() {
     useEffect(() => {
         isHostRef.current = isHost;
     }, [isHost]);
+
+
+    useEffect(() => {
+        playerIndexRef.current = playerIndex;
+    }, [playerIndex]);
 
 
     useEffect(() => {
@@ -115,25 +121,6 @@ function GamePage() {
     }
 
 
-    const handleFetchProblemList = async () => {
-        const fetch_problem_list_response = await fetch(`${PROBLEM_SET_API_URL}/getProblems`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify({ problem_set_id }),
-        });
-        if (fetch_problem_list_response.status === 500) {
-            console.log("Internal Server Error");
-            return []
-        } else {
-            const problemListJson = await fetch_problem_list_response.json();
-            const problemContent = problemListJson.problem_list;
-            return problemContent;
-        }
-    }
-
 
     useEffect(() => {
         if (socketRef.current) return;
@@ -161,29 +148,19 @@ function GamePage() {
                 sessionId: session,
             });
             
-            socket.emit("start-count-down", {
-                roomCode: roomId,
-                countDownSeconds: 3,
-            })
-            
             try {
                 if (!mounted) return;
-
-                socket.on("receive-problem", ({ problem }) => {
+                
+                socket.on("receive-problem", async ({ currProblem }) => {
                     setSubmittedAnswer(false);
-                    setCurrentDisplayProblem(problem);
-                    console.log("Recieved Problem", problem)
+                    setCurrentDisplayProblem(currProblem);
                 });
 
-                socket.on("receive-new-timer-percentage", ({ newPercentage }) => {
-                    setCurrentTimer(newPercentage);
+                socket.on("receive-timer-update", ({ timeAllowed }) => {
+                    setCurrentTime(timeAllowed);
                 });
 
-                socket.on("check-answer-response", ({correct, score}) => {
-                    console.log(`Your answer is ${correct ? "correct" : "incorrect"} and current score is ${score}`);
-                })
-
-                socket.on("receive-new-countdown-time", ({secondsLeft}) => {
+                socket.on("receive-count-down-update", ({secondsLeft}) => {
                     setCountDown(secondsLeft);
                 })
 
@@ -210,27 +187,29 @@ function GamePage() {
                 })
 
                 socket.on("receive-rank-list", async ({rankList}) => {
+                    setBlankAnswerInput("");
+                    setSelectedOption("");
                     setDisplayCorrectAnswer(false);
+                    setCurrentTime(100);
                     setRankingList(rankList);
                     setDisplayRankingPage(true);
-                    await sleep(5000);
+                    await sleep(6000);
                     setDisplayRankingPage(false);
                 })
 
-                socket.on("display-correct-answer", () => {
+                socket.on("display-correct-answer", async () => {
                     setPendingResultScreen(false);
                     setDisplayCorrectAnswer(true);
                 })
 
-                socket.on("redirect-player-result-page", async ({playerRank}) => {
-                    navigate(`/ResultPage/${userId}/${username}/${roomId}`, { state: {rankList: rankListRef.current, playerRank: playerRank, isHost: isHostRef.current} });
+                socket.on("redirect-player-result-page", async ({playerRank, rankingList}) => {
+                    navigate(`/ResultPage/${userId}/${username}/${roomId}`, { state: {rankList: rankingList, playerRank: playerRank, isHost: isHostRef.current, playerIndex: playerIndexRef.current} });
                 })
 
                 socket.on('connect', async () => {
                     await handleStoreRoomCodeRedis(socket.id, session);
                     const checkIsHost = await handleSetRoomHost(roomId || "", session);
                     const join_room_socket = await getRoomSocketId(roomId || "");
-                    const problemList = await handleFetchProblemList();
                     setIsHost(checkIsHost);
                     socket.emit('join-room', { 
                         socketId: join_room_socket,
@@ -238,38 +217,14 @@ function GamePage() {
                         sessionId: session,
                         playerName: username,
                         isLocked: "1",
+                        checkStream: true,
+                        problemSetId: problem_set_id,
                     }, (err: Error, playerList: String[]) => {
                         if (err) {
                             console.error('join-room error', err);
                             navigate("/");
                             return;
                         }
-                        if (!checkIsHost) return;
-                        (async () => {
-                            for (let i = 0; i < problemList.length; i++) {
-                                const problem = problemList[i];
-                                socket.emit("request-send-problems", {
-                                    roomCode: roomId,
-                                    currProblem: problem,
-                                });
-                                await sleep((problem.time_allowed_in_seconds + 3) * 1000);
-
-                                socket.emit("request-display-correct-answer", {
-                                    roomCode: roomId,
-                                })
-                                await sleep(3000);
-                                if (i + 1 < problemList.length) {
-                                    socket.emit("request-rank-list", {
-                                        roomCode: roomId,
-                                    });
-                                    await sleep(3000); // sleep here so that the timer does not go off when the problems are displayed 
-                                }                        
-                            }
-                            socket.emit("request-direct-result-page", {
-                                roomCode: roomId,
-                            });
-                            navigate(`/ResultPage/${userId}/${username}/${roomId}`, { state: {rankList: rankListRef.current, playerRank: -1, isHost: isHostRef.current} });
-                        })();
                     });
                 });
                 socket.connect();
@@ -424,10 +379,11 @@ function GamePage() {
                     <div className="ProgressBarContainer">
                         <ProgressLine
                             label={displayRankingPage}
+                            duration={currentTime}
                             backgroundColor="white"
                             visualParts={[
                                 {
-                                    percentage: `${currentTime}%`,
+                                    percentage: "100%",
                                     color: "deepskyblue",
                                 }
                             ]}

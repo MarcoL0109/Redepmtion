@@ -1,0 +1,22 @@
+.ResultPageContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.BackToHomeButton {
+    width: 250px;
+    font-size: 25px;
+    background-color: #E3AB13;
+    border: none
+}
+
+.BackToHomeButton :hover {
+    background-color: #ffbc05;
+    border: none
+}
+
+.BackToHomeButtonContainer {
+    margin-top: 50px;;
+}

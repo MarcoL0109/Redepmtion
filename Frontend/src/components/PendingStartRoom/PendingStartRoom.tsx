@@ -152,6 +152,8 @@ function PendingStartRoom() {
                         sessionId: session,
                         playerName: username,
                         isLocked: Number(toggleLock).toString(),
+                        checkStream: false,
+                        problemSetId: problem_set_id,
                     }, (err: Error, playerList: string[]) => {
                         if (err) {
                             console.error('join-room error', err);

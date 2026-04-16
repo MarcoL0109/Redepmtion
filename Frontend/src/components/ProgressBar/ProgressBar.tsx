@@ -9,10 +9,11 @@ interface VisualPart {
 interface ProgressLineProps {
     label: React.ReactNode;
     backgroundColor?: string;
+    duration: number;
     visualParts?: VisualPart[];
 }
 
-const ProgressLine: React.FC<ProgressLineProps> = ({label, backgroundColor = "#e5e5e5", visualParts = [{ percentage: "0%", color: "white" }]}) => {
+const ProgressLine: React.FC<ProgressLineProps> = ({label, backgroundColor = "#e5e5e5", duration, visualParts = [{ percentage: "0%", color: "white" }]}) => {
     const [widths, setWidths] = useState<string[]>(
     visualParts.map((item) => item.percentage)
     );
@@ -39,8 +40,7 @@ const ProgressLine: React.FC<ProgressLineProps> = ({label, backgroundColor = "#e
             >
                 {visualParts.map((item, index) => {
                     const currentWidth = widths[index] || "0%";
-                    const numericValue = parseFloat(currentWidth);
-                    const isResetting = numericValue === 100;
+                    const isFull = currentWidth === "100%";
 
                     return (
                     <div
@@ -48,7 +48,7 @@ const ProgressLine: React.FC<ProgressLineProps> = ({label, backgroundColor = "#e
                         style={{
                             width: currentWidth,
                             backgroundColor: item.color,
-                            transition: isResetting ? "none" : "width 1s linear",
+                            animation: isFull ? `drain ${duration}s linear forwards` : 'none',
                         }}
                         className="progressVisualPart"
                     />
