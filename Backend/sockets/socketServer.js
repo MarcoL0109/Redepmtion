@@ -10,7 +10,8 @@ const ROOM_CODE_EXPIRATION_TIME = 7200;
 const ROOM_SHADOW_KEYS_EXPIRAION_TIME = 7500;
 const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL;
 const expirationChannel = '__keyevent@0__:expired';
-const activeRoomProblems = new Map();
+const activeRoomProblems = new Map(); // Rmb to do clean up at the end of each room
+const problemStartTime = new Map(); // Rmb to do clean up as well
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
@@ -44,7 +45,7 @@ async function constructPlayerOrder(roomCode) {
     return rankList;
 }
 
-// The host should be no be listed in the leaderboard
+
 async function constructRankingList(roomCode) {
     const rankList = await constructPlayerOrder(roomCode);
     let prev = null, fullRankList = {players: []}, rank = 1;
@@ -104,14 +105,30 @@ async function streamProblems(problemSetId, roomCode) {
 
     await runProblemTimer(3, "actual");
     for (let i = 0; i < problemList.length; i++) {
+
+        const roomExists = await redisClient.exists(roomCode);
+        if (!roomExists) {
+            console.log(`Stream stopped for ${roomCode}: Room terminated.`);
+            return; // Exit the function entirely
+        }
         const problem = problemList[i];
         activeRoomProblems.set(roomCode, problem);
         io.to(roomSocketId).emit("receive-problem", { currProblem: problem });
 
+        problemStartTime.set(roomCode, Date.now());
         await runProblemTimer(problem.time_allowed_in_seconds, "percentage");
 
         io.to(roomSocketId).emit("display-correct-answer");
-        await runProblemTimer(5, "perecentage");
+        await runProblemTimer(5, "percentage");
+
+        const currProblemId = problem.problem_id;
+        const allProgress = await redisClient.hGetAll(`${roomCode}-Session-Last-Problem-Answered`);
+        const hostSession = await redisClient.get(`${roomCode}-Host`);
+        for (const sessionId in allProgress) {
+            if (allProgress[sessionId] !== String(currProblemId) && sessionId !== hostSession) {
+                await redisClient.rPush(`${sessionId}-${roomCode}-Answer-History`, "TIMEOUT_NULL");
+            }
+        }
 
         if (i + 1 < problemList.length) {
             const rankingList = await constructRankingList(roomCode);
@@ -128,9 +145,6 @@ async function streamProblems(problemSetId, roomCode) {
                     rank++;
                 }
                 prev = player.playerScore;
-
-                console.log(rankingList);
-
                 const playerSocketId = await redisClient.hGet(`${roomCode}-Session-Socket`, player.sessionId);
                 if (playerSocketId) {
                     io.to(playerSocketId).emit("redirect-player-result-page", { playerRank: rank, rankingList: rankingList });
@@ -155,16 +169,22 @@ subscriber.subscribe(expirationChannel, async (message) => {
             reason: "Inactivity", 
             message: "Room expired due to 2 hours of inactivity." 
         });
-
         await Promise.all([
             redisClient.del(`${roomCode}-Player-Session`),
             redisClient.del(`${roomCode}-Session-Socket`),
-            redisClient.del(`${roomCode}-Session-Player`),
             redisClient.del(`${roomCode}-Locked`),
             redisClient.del(`${roomCode}`),
             redisClient.del(`${roomCode}-Host`),
             redisClient.del(`${roomCode}-Session-Score`),
+            redisClient.del(`${roomCode}-Joined-Barrier`),
+            redisClient.del(`${roomCode}-Problem-Set`),
+            redisClient.del(`${roomCode}-Last-Problem-Answered`),
         ]);
+        const allSession = await redisClient.hGetAll(`${roomCode}-Session-Player`);
+        for (const sessionId in allSession) {
+            await redisClient.del(`${sessionId}-${roomCode}-Answer-History`);
+        }
+        await redisClient.del(`${roomCode}-Session-Player`);
     }
 });
 
@@ -182,12 +202,13 @@ io.on("connection", socket => {
             await redisClient.hSet(`${roomCode}-Player-Session`, currentPlayerCount, sessionId);
             await redisClient.hSet(`${roomCode}-Session-Player`, sessionId, currentPlayerCount);
             // I need to make some entries for tracking user answer history
-            // And these entries will be used to store in the database
+            // Hashmap with a string with a series of answers for MC and answers for Blank separated by wrapping underscore around the answer
         }
         await redisClient.hSet(`${roomCode}-List`, sessionId, playerName);
         await redisClient.hSet(`${roomCode}-Session-Socket`, sessionId, socket.id);
         await redisClient.hSet(`${roomCode}-Session-Score`, sessionId, 0);
         await redisClient.setEx(`${roomCode}-Status`, ROOM_SHADOW_KEYS_EXPIRAION_TIME, "Pending");
+        await redisClient.hSet(`${roomCode}-Session-Last-Problem-Answered`, sessionId, -1);
         if (!is_lock_state_here) {
             await redisClient.setEx(`${roomCode}-Locked`, ROOM_SHADOW_KEYS_EXPIRAION_TIME, isLocked);
             await redisClient.setEx(`${roomCode}-Problem-Set`, ROOM_SHADOW_KEYS_EXPIRAION_TIME, problemSetId);
@@ -196,6 +217,7 @@ io.on("connection", socket => {
             await redisClient.expire(`${roomCode}-Session-Socket`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
             await redisClient.expire(`${roomCode}-Session-Player`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
             await redisClient.expire(`${roomCode}-Session-Score`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+            await redisClient.expire(`${roomCode}-Session-Last-Problem-Answered`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
         } else {
             currentLockState = await redisClient.get(`${roomCode}-Locked`);
         }
@@ -213,7 +235,6 @@ io.on("connection", socket => {
                 const problemSetId = await redisClient.get(`${roomCode}-Problem-Set`);
                 streamProblems(problemSetId, roomCode);
             }
-                
         }
     })
 
@@ -232,6 +253,8 @@ io.on("connection", socket => {
             await redisClient.hDel(`${roomCode}-Session-Player`, clientSessionId);
             await redisClient.hDel(`${roomCode}-Player-Session`, myPlayerIndex);
             await redisClient.hDel(`${roomCode}-Session-Score`, clientSessionId);
+            await redisClient.hDel(`${roomCode}-Last-Problem-Answered`, clientSessionId);
+            await redisClient.del(`${clientSessionId}-Answer-History`);
             const player_list_names = await constructPlayerList(roomCode);
             io.to(roomSocketId).emit("returned-player-list", player_list_names);
         } else {
@@ -241,18 +264,26 @@ io.on("connection", socket => {
             });
             io.in(roomSocketId).socketsLeave(roomSocketId);
             // Remove all room related information stored in the redis
+            activeRoomProblems.delete(roomCode); // Clean up of the active problem
+            problemStartTime.delete(roomCode);
             await Promise.all([
                 redisClient.del(`${roomCode}-List`),
                 redisClient.del(roomCode),
                 redisClient.del(`${roomCode}-Host`),
                 redisClient.del(`${roomCode}-Player-Session`),
                 redisClient.del(`${roomCode}-Session-Socket`),
-                redisClient.del(`${roomCode}-Session-Player`),
                 redisClient.del(`${roomCode}-Locked`),
                 redisClient.del(`${roomCode}-Session-Score`),
                 redisClient.del(`${roomCode}-Joined-Barrier`),
                 redisClient.del(`${roomCode}-Problem-Set`),
+                redisClient.del(`${roomCode}-Session-Answer-History`),
+                redisClient.del(`${roomCode}-Last-Problem-Answered`),
             ]);
+            const allSession = await redisClient.hGetAll(`${roomCode}-Session-Player`);
+            for (const sessionId in allSession) {
+                await redisClient.del(`${sessionId}-${roomCode}-Answer-History`);
+            }
+            await redisClient.del(`${roomCode}-Session-Player`);
         }
     })
 
@@ -274,6 +305,8 @@ io.on("connection", socket => {
                 redisClient.hDel(`${roomCode}-Player-Session`, playerIndex),
                 redisClient.hDel(`${roomCode}-Session-Socket`, playerSession),
                 redisClient.hDel(`${roomCode}-Session-Score`, playerSession),
+                redisClient.hDel(`${playerSession}-Answer-History`, playerSession),
+                redisClient.hDel(`${roomCode}-Last-Problem-Answered`, playerSession),
             ]);
         io.to(targetSocketId).emit("kick-player-message", `${username} is kicked by host`);
         const player_list_names = await constructPlayerList(roomCode, roomSocketId);
@@ -310,8 +343,14 @@ io.on("connection", socket => {
 
     socket.on("submit-client-answer", async (data) => {
         // Need to fix this. THe time state is no longer in the frontend anymore. So the timeSubmitted is always going to be the time allowed for the problem
-        const {question_type, clientAnswer, roomCode, timeSubmitted, sessionId} = data;
+        const {question_type, clientAnswer, roomCode, sessionId} = data;
+        const currentDate = Date.now();
+        const currProblemStartTime = problemStartTime.get(roomCode);
+        const timeElapsedMs = currentDate - currProblemStartTime;
+        const timeElapsedRounded = Math.floor(timeElapsedMs / 1000);
         const currProblem = activeRoomProblems.get(roomCode);
+        const timeAllowed = currProblem.time_allowed_in_seconds;
+        const timeRemain = timeAllowed - timeElapsedRounded;
         const correctAnswer = question_type === "MC" ? currProblem.correct_answer.MC : currProblem.correct_answer.Blanks;
         const isCaseSensitive = currProblem.case_sensitive;
         let isCorrectAnswer = false;
@@ -326,10 +365,12 @@ io.on("connection", socket => {
         returnScore = parseInt(returnScore, 10);
         returnScore += (isCorrectAnswer ? 100 : 0);
         if (isCorrectAnswer === true) {
-            const scoreForTime = 100 * (timeSubmitted / 100);
+            const scoreForTime = 100 * (timeRemain / timeAllowed);
             returnScore += scoreForTime;
         }
         await redisClient.hSet(`${roomCode}-Session-Score`, sessionId, returnScore);
+        await redisClient.rPush(`${sessionId}-${roomCode}-Answer-History`, clientAnswer);
+        await redisClient.hSet(`${roomCode}-Session-Last-Problem-Answered`, sessionId, currProblem.problem_id);
         io.to(socket.id).emit("check-answer-response", {
             correct: isCorrectAnswer,
             score: returnScore,
@@ -343,6 +384,14 @@ io.on("connection", socket => {
         const playerIndex = await redisClient.hGet(`${roomCode}-Session-Player`, sessionId);
         io.to(socket.id).emit("set-ranklist-ref", {rankList: rankingList});
         io.to(socket.id).emit("set-player-index", {playerIndex: parseInt(playerIndex, 10)});
+    })
+
+
+    socket.on("request-player-answer-history", async (data) => {
+        const {sessionId, roomCode} = data;
+        const clientAnswerHistory = await redisClient.lRange(`${sessionId}-${roomCode}-Answer-History`, 0, -1);
+        console.log("Emitting history to users!!!");
+        io.to(socket.id).emit("receive-player-answer-history", {answerHistory: clientAnswerHistory});
     })
 
 })

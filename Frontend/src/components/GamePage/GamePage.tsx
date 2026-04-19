@@ -19,8 +19,6 @@ function GamePage() {
     const ROOM_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL as string;
     //@ts-ignore
     const UTILS_API_URL = process.env.VITE_UTILS_API_URL as string;
-    //@ts-ignore
-    const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL as string;
     const navigate = useNavigate();
     const {userId, username, roomId, problem_set_id} = useParams();
     const [isHost, setIsHost] = useState<boolean>(false);
@@ -33,7 +31,6 @@ function GamePage() {
     const [displayRankingPage, setDisplayRankingPage] = useState<boolean>(false);
     const [rankingList, setRankingList] = useState<RankPageProps>({players: [{playerIndex: 1, playerName: "", playerScore: 0, playerRank: 1}], isHost: false});
     const rankListRef = useRef(rankingList);
-    const [allProblemsStreamed, setAllProblemStreamed] = useState<boolean>(false); // Not in use yet
     const [pendingResultScreen, setPendingResultScreen] = useState<boolean>(false);
     const [isOverlayOpen, setIsOverlayOpen] = useState<boolean>(false);
     const [hostLeave, setHostLeave] = useState<boolean>(false);
@@ -198,6 +195,7 @@ function GamePage() {
                 })
 
                 socket.on("display-correct-answer", async () => {
+                    // If the user did not submit anything, we still need to set the answer as null or whatever. So a socket emit is needed in here maybe
                     setPendingResultScreen(false);
                     setDisplayCorrectAnswer(true);
                 })
@@ -257,7 +255,6 @@ function GamePage() {
                     question_type: "MC",
                     clientAnswer: splitAnswer[splitAnswer.length - 1],
                     roomCode: roomId,
-                    timeSubmitted: currentTime,
                     sessionId: session,
                 });
                 setPendingResultScreen(true);
@@ -379,6 +376,7 @@ function GamePage() {
                     <div className="ProgressBarContainer">
                         <ProgressLine
                             label={displayRankingPage}
+                            key={currentTime}
                             duration={currentTime}
                             backgroundColor="white"
                             visualParts={[
