@@ -46,7 +46,6 @@ function ResultPage() {
                 console.log("Received answer history", answerHistory);
             });
 
-            // It is safer to wait for the 'connect' event before emitting
             socket.on("connect", async () => {
                 const sessionId = await getSessionID();
                 console.log("Socket connected, emitting request...");

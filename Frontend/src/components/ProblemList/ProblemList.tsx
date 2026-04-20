@@ -451,7 +451,6 @@ function ProblemList() {
         })
         const room_code_json = await get_room_code.json();
         const room_code = room_code_json.code;
-        // Add username in the url to avoid using useLocation.
         for (let i = 0; i < problemList.length; i++) {
             if ((problemList[i].question_type === "Multiple Choice" && problemList[i].correct_answer.MC === "") ||
                 problemList[i].question_type === "Blanks" && problemList[i].correct_answer.Blanks === "") {
@@ -459,6 +458,7 @@ function ProblemList() {
                 return;
             }
         }
+        // Need to set the start room time in here
         navigate(`/PendingStartRoom/${userData.user_id}/${userData.username}/${room_code}/${problem_set_id}`);
     }
 

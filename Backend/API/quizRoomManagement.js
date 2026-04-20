@@ -25,8 +25,10 @@ router.post("/storeRoomCodeSocketId", async (req, res) => {
 
     if (is_here === 0) {
         try {
-            await redisClient.setEx(room_code, ROOM_SHADOW_KEYS_EXPIRAION_TIME, socket_id);
-            await redisClient.setEx(`${room_code}-Host`, ROOM_SHADOW_KEYS_EXPIRAION_TIME, session_id);
+            await redisClient.hSet(room_code, "SocketId", socket_id);
+            await redisClient.hSet(room_code, "Host", session_id);
+            await redisClient.hSet(room_code, "RoomStartTime", Date.now());
+            await redisClient.expire(room_code, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
         } catch (error) {
             console.log(error);
             res.status(500).json({message: "Internal Server Error"});
@@ -39,7 +41,7 @@ router.post("/storeRoomCodeSocketId", async (req, res) => {
 router.post("/getRoomSocketID", async (req, res) => {
     const room_code = req.body.room_code;
     try {
-        const socket_id = await redisClient.get(room_code);
+        const socket_id = await redisClient.hGet(room_code, "SocketId");
         res.status(200).json({socket_id: socket_id});
     } catch (error) {
         console.log(error);
@@ -54,7 +56,7 @@ router.post("/checkRoomCodeExist", async (req, res) => {
     if (is_room_exist === 0) {
         res.status(404).json({message: "Room with such code is not found"});
     } else {
-        const isLocked = await redisClient.get(`${roomCode}-Locked`);
+        const isLocked = await redisClient.hGet(roomCode, "IsLocked");
         if (isLocked === "0") {
             res.status(200).json({message: "Room Found"});
         } else {
@@ -68,7 +70,7 @@ router.post("/getRoomHost", async (req, res) => {
     const room_code = req.body.room_code;
     const received_session_id = req.body.session_id;
     try {
-        const host_session_id = await redisClient.get(`${room_code}-Host`);
+        const host_session_id = await redisClient.hGet(room_code, "Host");
         const is_host = host_session_id === received_session_id;
         res.status(200).json({is_host: is_host});
     } catch (error) {
