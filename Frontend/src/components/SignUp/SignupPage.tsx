@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import "./SignUpPage.css"
+import "./SignupPage.css"
 import React, { useState } from 'react';
 import { FourSquare } from 'react-loading-indicators';
 

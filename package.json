@@ -32,5 +32,8 @@
   },
   "devDependencies": {
     "react-error-overlay": "^6.0.9"
-  }
+  },
+  "scripts": {
+  "build-prod": "yarn --cwd Frontend build"
+}
 }

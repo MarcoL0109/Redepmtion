@@ -31,7 +31,7 @@ interface UserData {
 }
 
 interface ObejctForAPI {
-    [key: string]: string; // All values are strings after JSON.stringify
+    [key: string]: any; // All values are strings after JSON.stringify
 }
 
 export interface AnswerOptions {

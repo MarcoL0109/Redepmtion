@@ -5,6 +5,7 @@ const io = require("socket.io")(parseInt(process.env.REACT_APP_SOCKET_SERVER_POR
         origin: [process.env.REACT_APP_URL]
     }
 })
+console.log("✅ Socket server starts listening from port", parseInt(process.env.REACT_APP_SOCKET_SERVER_PORT));
 const ROOM_CODE_EXPIRATION_TIME = 7200;
 const ROOM_SHADOW_KEYS_EXPIRAION_TIME = 7500;
 const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL;

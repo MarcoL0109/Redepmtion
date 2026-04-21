@@ -1,6 +1,11 @@
 const redis = require("redis");
 
-const redisClient = redis.createClient();
+const redisClient = redis.createClient({
+    socket: {
+        host: process.env.REDIS_HOST || 'redis', 
+        port: 6379
+    }
+});
 const subscriber = redisClient.duplicate();
 
 // Create an anonymous async function and call it immediately
