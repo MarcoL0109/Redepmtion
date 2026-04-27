@@ -1,7 +1,6 @@
 # Stage 1: Build (Frontend)
 FROM node:20-alpine AS build-stage
 
-# Define ARGs for build-time (Frontend needs these baked in)
 ARG VITE_USER_API_URL
 ARG VITE_UTILS_API_URL
 ARG VITE_PROBLEM_SETS_API_URL
@@ -11,7 +10,6 @@ ARG REACT_APP_SERVER_PORT
 ARG REACT_APP_SOCKET_SERVER_URL
 ARG REACT_APP_URL
 
-# Set them as ENVs so the 'yarn build' process can see them
 ENV VITE_USER_API_URL=$VITE_USER_API_URL
 ENV VITE_UTILS_API_URL=$VITE_UTILS_API_URL
 ENV VITE_PROBLEM_SETS_API_URL=$VITE_PROBLEM_SETS_API_URL

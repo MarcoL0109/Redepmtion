@@ -40,7 +40,7 @@ async function startApp() {
         }));
 
         // 4. Static Files
-        const distPath = path.join(__dirname, '../dist');
+        const distPath = path.join(__dirname, '../Frontend/dist');
         app.use(express.static(distPath));
 
         // 5. API Routes

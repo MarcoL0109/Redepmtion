@@ -6,6 +6,7 @@ const db = require('../models/db');
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require("nodemailer")
 const {encrypt_object, decrypt_object} = require("../security_utils/encryption")
+const idempotencyGuard = require('../middleware/idempotency');
 const transport = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -16,7 +17,7 @@ const transport = nodemailer.createTransport({
 })
 
 
-router.post("/login", async (req, res) => {
+router.post("/login", idempotencyGuard,  async (req, res) => {
     try {
         const {email, password } = req.body;
         const search_from_email_query = "SELECT * FROM user_info WHERE email = ?";
