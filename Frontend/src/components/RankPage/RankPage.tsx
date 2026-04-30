@@ -21,6 +21,7 @@ export interface RankPageProps {
 
 function RankPage({players, isHost, clientPlayerIndex, handleKickPlayer} : RankPageProps) {
 
+    // Pour data to login user to update their play history
 
     return (
         <table className="JoinerList">
