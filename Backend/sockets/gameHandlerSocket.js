@@ -1,4 +1,4 @@
-const {constructPlayerList, constructRankingList} = require("../utils/gameUtils")
+const {constructPlayerList, constructRankingList, constructPlayerOrder} = require("../utils/gameUtils");
 const {activeRoomProblems, problemStartTime} = require("../utils/gameStates")
 
 module.exports = function(io, redisClient) {

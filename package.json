@@ -19,6 +19,7 @@
     "express-session": "^1.19.0",
     "mysql2": "^3.18.2",
     "nodemailer": "^8.0.1",
+    "nodemon": "^3.1.14",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-fontawesome": "^1.7.1",

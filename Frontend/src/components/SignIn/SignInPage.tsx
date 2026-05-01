@@ -10,11 +10,14 @@ function SignInPage() {
     const navigate = useNavigate()
     const [incorrectLoginInfo, setincorrectLoginInfo] = useState<boolean>(false);
     const [notActivated, setNotActivated] = useState<boolean>(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     //@ts-ignore
     const USER_API_URL = process.env.VITE_USER_API_URL;
 
 
     const HandleSignIn = async (email: string, password: string) => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             const login_status = await fetch(`${USER_API_URL}/login`, {
                 method: "POST",
@@ -29,8 +32,10 @@ function SignInPage() {
             if (login_status.status === 200) {
                 navigate("/Home");
             }
+            setIsSubmitting(false);
         } catch (error) {
             console.log(error);
+            setIsSubmitting(false);
         }
     };
 
@@ -50,7 +55,7 @@ function SignInPage() {
                 <form className="SignInForm" onSubmit={handleSubmit}>
                     <input className="email_form_inputs" type="text" placeholder="Email" required value={email} onChange={(e) => {setEmail(e.target.value)}}/>
                     <input className="password_form_inputs" type="password" placeholder="Password" required value={password} onChange={(e) => {setPassword(e.target.value)}}/>
-                    <button type="submit" className="SignInButton">
+                    <button type="submit" className="SignInButton" disabled={isSubmitting}>
                         <strong>Sign In</strong>
                     </button>
                     <div className="AccountManagementTags">
