@@ -52,6 +52,7 @@ io.on("connection", socket => {
     socket.on("kick-player", async (data) => {gameHandlerSocket.handleKickPlayer(data)});
     socket.on("submit-client-answer", async (data, socket_id) => {gameHandlerSocket.handleSubmitClientAnswer(data, socket.id)});
     socket.on("init-game-info", async (data, socket_id) => {gameHandlerSocket.handleInitGameInfo(data, socket.id)});
+    socket.on("request-clean-room-info", async (data) => {roomHandlerSocket.handleCleanRoomInfo(data)});
 
 
     socket.on("request-player-answer-history", async (data) => {

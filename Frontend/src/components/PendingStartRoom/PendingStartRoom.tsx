@@ -151,6 +151,7 @@ function PendingStartRoom() {
                         roomCode: roomId,
                         sessionId: session,
                         playerName: username,
+                        userId: userId,
                         isLocked: Number(toggleLock).toString(),
                         checkStream: false,
                         problemSetId: problem_set_id,

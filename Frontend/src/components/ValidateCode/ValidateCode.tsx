@@ -11,23 +11,33 @@ function ValidateResetPasswordCode() {
     const { inputEmail } = location.state || {};
     const [incorrectCode, setIncorrectCode] = useState<boolean>(false);
     const [inputValidationCode, setInputValidationCode] = useState<string>("");
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [countDown, setCountDown] = useState<number>(60);
     const USER_API_URL = process.env.VITE_USER_API_URL;
 
 
     const handleValidateCode = async (email: string, validationCode: string) => {
-        const validateResult = await fetch(`${USER_API_URL}/ValidateCode`, {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            credentials: "include",
-            body: JSON.stringify({email: email, validationCode: validationCode}),
-        });
-        setIncorrectCode(validateResult.status === 401);
-        if (validateResult.status === 200) {
-            navigate("/ResetPassword", { state: { inputEmail, validationCode } });
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        try {
+            const validateResult = await fetch(`${USER_API_URL}/ValidateCode`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: "include",
+                body: JSON.stringify({email: email, validationCode: validationCode}),
+            });
+            setIncorrectCode(validateResult.status === 401);
+            if (validateResult.status === 200) {
+                navigate("/ResetPassword", { state: { inputEmail, validationCode } });
+            }
+            setIsSubmitting(false);
+        } catch (error) {
+            setIsSubmitting(false);
+            console.error(error);
         }
+        
     }
 
     useEffect(() => {
@@ -81,7 +91,7 @@ function ValidateResetPasswordCode() {
                         <input className="validation_code_inputs" type="text" required value={inputValidationCode} onChange={(e) => {setInputValidationCode(e.target.value)}}/>
                         <a onClick={handleResend} className={`resend_tag_${countDown > 0 ? 'disabled' : ''}`}>Resend {`${countDown > 0 ? '(' + countDown + ')': ""}`}</a>
                     </div>
-                    <button type="submit" className="ValidateCodeButton" disabled={inputValidationCode === ""}>
+                    <button type="submit" className="ValidateCodeButton" disabled={inputValidationCode === "" || isSubmitting}>
                         <strong>Validate</strong>
                     </button>
                     <div className="IncorrectValidationCode">

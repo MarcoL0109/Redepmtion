@@ -16,6 +16,7 @@ function SignUpPage() {
     const [existingAccount, setExistingAccount] = useState<boolean>(false);
     const [displayLoading, setDisplayLoading] = useState<boolean>(false);
     const [displayErrorMessage, setDisplayErrorMessage] = useState<boolean>(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const USER_API_URL = process.env.VITE_USER_API_URL;
 
 
@@ -41,6 +42,8 @@ function SignUpPage() {
 
 
     const handleSignUp = async (email: string, username: string, confirmPassword: string) => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             const createUserStatus = await fetch(`${USER_API_URL}/createUsers`, {
                 method: "POST",
@@ -58,9 +61,11 @@ function SignUpPage() {
             
             if (createUserStatus.status === 200) {navigate("/ActivationTempPage");}
             else if (createUserStatus.status === 500) {setDisplayErrorMessage(true);}
+            setIsSubmitting(false);
 
         } catch (error) {
             setDisplayErrorMessage(true);
+            setIsSubmitting(false);
         }
     }
 
@@ -128,7 +133,7 @@ function SignUpPage() {
                     }
                     {
                         !displayLoading ?
-                            <button type="submit" className="SignUpButton" disabled={diffPassword}>
+                            <button type="submit" className="SignUpButton" disabled={diffPassword || isSubmitting}>
                                 <strong>Sign Up</strong>
                             </button> :
                         <div className="loading_icon_animations">

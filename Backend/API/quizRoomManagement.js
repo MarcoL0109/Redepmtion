@@ -79,5 +79,11 @@ router.post("/getRoomHost", async (req, res) => {
     }
 })
 
+// Incomplete -> Some of the info (ie. user_id, join_room_host_by) can be fetched from redis
+// Also, some info needs to be set in database during the pending start room
+router.post("/setPlayerHistory", async (req, res) => {
+    const {roomCode, problemSetId, playerScore, userId, playerIndex} = req.body;
+})
+
 
 module.exports = router

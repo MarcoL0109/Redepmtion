@@ -105,10 +105,30 @@ module.exports = function(io, redisClient) {
     }
 
 
+    const clearRoomInfo = async (roomCode) => {
+        activeRoomProblems.delete(roomCode);
+        problemStartTime.delete(roomCode);
+        await Promise.all([
+            redisClient.del(`${roomCode}-List`),
+            redisClient.del(roomCode),
+            redisClient.del(`${roomCode}-Player-Session`),
+            redisClient.del(`${roomCode}-Session-Socket`),
+            redisClient.del(`${roomCode}-Session-Score`),
+            redisClient.del(`${roomCode}-Joined-Barrier`),
+            redisClient.del(`${roomCode}-Session-Last-Problem-Answered`),
+        ]);
+        const allSession = await redisClient.hGetAll(`${roomCode}-Session-Player`);
+        for (const sessionId in allSession) {
+            await redisClient.del(`${sessionId}-${roomCode}-Answer-History`);
+        }
+        await redisClient.del(`${roomCode}-Session-Player`);
+    }
+
+
     return {
 
         handleJoinRoom: async (data, ack, socket) => {
-            const { socketId, roomCode, sessionId, playerName, isLocked, checkStream, problemSetId } = data;
+            const { socketId, roomCode, sessionId, playerName, userId, isLocked, checkStream, problemSetId } = data;
             const is_lock_state_here = await redisClient.hExists(roomCode, "IsLocked");
             let currentLockState = "0";
             socket.join(socketId);
@@ -126,6 +146,7 @@ module.exports = function(io, redisClient) {
             if (!is_lock_state_here) {
                 await redisClient.hSet(roomCode, "IsLocked", isLocked);
                 await redisClient.hSet(roomCode, "ProblemSetId", problemSetId);
+                await redisClient.hSet(roomCode, "HostUserId", userId);
                 await redisClient.expire(`${roomCode}-List`, ROOM_CODE_EXPIRATION_TIME);
                 await redisClient.expire(`${roomCode}-Player-Session`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
                 await redisClient.expire(`${roomCode}-Session-Socket`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
@@ -141,7 +162,6 @@ module.exports = function(io, redisClient) {
             if (typeof ack === "function") ack(null, player_list_names);
             if (!checkStream) return
             const currentJoined = await redisClient.incr(`${roomCode}-Joined-Barrier`);
-            // Remove manually after the room ends to prevent memory leak
             const totalExpected = await redisClient.hLen(`${roomCode}-Session-Score`);
             if (currentJoined === totalExpected) {
                 const started = await redisClient.hGet(roomCode, "Status");
@@ -179,24 +199,7 @@ module.exports = function(io, redisClient) {
                     message: "Room is closed by the host"
                 });
                 io.in(roomSocketId).socketsLeave(roomSocketId);
-                // Remove all room related information stored in the redis
-                activeRoomProblems.delete(roomCode);
-                problemStartTime.delete(roomCode);
-                await Promise.all([
-                    redisClient.del(`${roomCode}-List`),
-                    redisClient.del(roomCode),
-                    redisClient.del(`${roomCode}-Player-Session`),
-                    redisClient.del(`${roomCode}-Session-Socket`),
-                    redisClient.del(`${roomCode}-Session-Score`),
-                    redisClient.del(`${roomCode}-Joined-Barrier`),
-                    redisClient.del(`${roomCode}-Session-Answer-History`),
-                    redisClient.del(`${roomCode}-Last-Problem-Answered`),
-                ]);
-                const allSession = await redisClient.hGetAll(`${roomCode}-Session-Player`);
-                for (const sessionId in allSession) {
-                    await redisClient.del(`${sessionId}-${roomCode}-Answer-History`);
-                }
-                await redisClient.del(`${roomCode}-Session-Player`);
+                await clearRoomInfo(roomCode);
             }
         },
 
@@ -218,6 +221,12 @@ module.exports = function(io, redisClient) {
             await redisClient.expire(`${roomCode}-Session-Score`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
             await redisClient.expire(`${roomCode}-Joined-Barrier`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
             io.to(roomSocketId).emit("redirect-room-members");
+        },
+
+
+        handleCleanRoomInfo: async (data) => {
+            const {roomCode} = data;
+            await clearRoomInfo(roomCode);
         }
     }
 }

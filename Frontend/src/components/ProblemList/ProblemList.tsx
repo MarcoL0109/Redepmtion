@@ -125,7 +125,6 @@ function ProblemList() {
                 return next;
             });
         }
-        setIsLoaded(true);
     };
 
 
