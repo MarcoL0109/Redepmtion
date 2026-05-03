@@ -4,6 +4,7 @@ const ROOM_SHADOW_KEYS_EXPIRAION_TIME = 7500;
 const {activeRoomProblems, problemStartTime} = require("../utils/gameStates")
 const {constructPlayerList, constructRankingList, constructPlayerOrder} = require("../utils/gameUtils");
 const PROBLEM_SET_API_URL = process.env.VITE_PROBLEM_SETS_API_URL;
+const ROOM_API_URL = process.env.VITE_ROOM_MANAGEMENT_API_URL;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
@@ -116,12 +117,33 @@ module.exports = function(io, redisClient) {
             redisClient.del(`${roomCode}-Session-Score`),
             redisClient.del(`${roomCode}-Joined-Barrier`),
             redisClient.del(`${roomCode}-Session-Last-Problem-Answered`),
+            redisClient.del(`${roomCode}-UserId`),
         ]);
         const allSession = await redisClient.hGetAll(`${roomCode}-Session-Player`);
         for (const sessionId in allSession) {
             await redisClient.del(`${sessionId}-${roomCode}-Answer-History`);
         }
         await redisClient.del(`${roomCode}-Session-Player`);
+    }
+
+
+    const storeUserJoinData = async (roomCode) => {
+        const problemSetIFromRedis = await redisClient.hGet(roomCode, "ProblemSetId");
+        const loggedInUser = await redisClient.hVals(`${roomCode}-Session-UserId`);
+        try {
+            const insertHistoryRecord = await fetch(`${ROOM_API_URL}/insertJoinHistoryInfo`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                }, credentials: "include",
+                body: JSON.stringify({roomCode: roomCode, problemSetId: problemSetIFromRedis, userIds: loggedInUser})
+            })
+            if (insertHistoryRecord.status === 200) {
+                console.log(`Users with ${loggedInUser} has inserted a new join hisotry to the database`)
+            }
+        } catch (error) {
+            console.error(error);
+        } 
     }
 
 
@@ -146,7 +168,6 @@ module.exports = function(io, redisClient) {
             if (!is_lock_state_here) {
                 await redisClient.hSet(roomCode, "IsLocked", isLocked);
                 await redisClient.hSet(roomCode, "ProblemSetId", problemSetId);
-                await redisClient.hSet(roomCode, "HostUserId", userId);
                 await redisClient.expire(`${roomCode}-List`, ROOM_CODE_EXPIRATION_TIME);
                 await redisClient.expire(`${roomCode}-Player-Session`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
                 await redisClient.expire(`${roomCode}-Session-Socket`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
@@ -156,6 +177,12 @@ module.exports = function(io, redisClient) {
             } else {
                 currentLockState = await redisClient.hGet(roomCode, "IsLocked");
             }
+            const hostSessionId = await redisClient.hGet(roomCode, "Host");
+            if (userId != "0" && sessionId != hostSessionId) {
+                await redisClient.hSet(`${roomCode}-Session-UserId`, sessionId, userId);
+                await redisClient.expire(`${roomCode}-UserId`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+            }
+            
             const player_list_names = await constructPlayerList(roomCode, socketId);
             io.to(socketId).emit("returned-player-list", player_list_names);
             io.to(socketId).emit("init-room-state", Number(currentLockState));
@@ -168,6 +195,7 @@ module.exports = function(io, redisClient) {
                 if (started === "Pending") {
                     await redisClient.hSet(roomCode, "Status", "Started")
                     await redisClient.hSet(roomCode, "GameStartTime", Date.now());
+                    await storeUserJoinData(roomCode);
                     const problemSetId = await redisClient.hGet(roomCode, "ProblemSetId");
                     streamProblems(problemSetId, roomCode);
                 }
@@ -180,7 +208,6 @@ module.exports = function(io, redisClient) {
             const roomSocketId = await redisClient.hGet(roomCode, "SocketId");
             const userName = await redisClient.hGet(`${roomCode}-List`, clientSessionId);
             if (!isHost) {
-                // Remeber to use the socket id of the host and not the socket id of the current client
                 socket.leave(roomSocketId);
                 io.to(roomSocketId).emit("log-leave-message", `${userName} has left the room`);
                 await redisClient.hDel(`${roomCode}-List`, clientSessionId);
@@ -191,6 +218,7 @@ module.exports = function(io, redisClient) {
                 await redisClient.hDel(`${roomCode}-Session-Score`, clientSessionId);
                 await redisClient.hDel(`${roomCode}-Last-Problem-Answered`, clientSessionId);
                 await redisClient.del(`${clientSessionId}-Answer-History`);
+                await redisClient.hDel(`${roomCode}-Session-UserId`, clientSessionId);
                 const player_list_names = await constructPlayerList(roomCode);
                 io.to(roomSocketId).emit("returned-player-list", player_list_names);
             } else {
@@ -220,6 +248,7 @@ module.exports = function(io, redisClient) {
             await redisClient.expire(`${roomCode}`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
             await redisClient.expire(`${roomCode}-Session-Score`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
             await redisClient.expire(`${roomCode}-Joined-Barrier`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
+            await redisClient.expire(`${roomCode}-UserId`, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
             io.to(roomSocketId).emit("redirect-room-members");
         },
 

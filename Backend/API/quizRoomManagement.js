@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {redisClient, subscriber} = require("../utils/redis");
+const db = require('../models/db');
 const ROOM_SHADOW_KEYS_EXPIRAION_TIME = 7500;
 
 
@@ -21,12 +22,16 @@ router.post("/storeRoomCodeSocketId", async (req, res) => {
     const room_code = req.body.room_code;
     const socket_id = req.body.socket_id;
     const session_id = req.body.session_id;
+    const userId = req.body.user_id;
     const is_here = await redisClient.exists(room_code);
 
+    // If the room is not found yet in redis. That means the room is not previously made by any users yet. Any users 
+    // that can call this api route is a host.
     if (is_here === 0) {
         try {
             await redisClient.hSet(room_code, "SocketId", socket_id);
             await redisClient.hSet(room_code, "Host", session_id);
+            await redisClient.hSet(room_code, "Host-UserId", userId);
             await redisClient.hSet(room_code, "RoomStartTime", Date.now());
             await redisClient.expire(room_code, ROOM_SHADOW_KEYS_EXPIRAION_TIME);
         } catch (error) {
@@ -79,10 +84,28 @@ router.post("/getRoomHost", async (req, res) => {
     }
 })
 
-// Incomplete -> Some of the info (ie. user_id, join_room_host_by) can be fetched from redis
-// Also, some info needs to be set in database during the pending start room
-router.post("/setPlayerHistory", async (req, res) => {
-    const {roomCode, problemSetId, playerScore, userId, playerIndex} = req.body;
+
+router.post("/insertJoinHistoryInfo", async (req, res) => {
+    const {roomCode, problemSetId, userIds} = req.body;
+    try {
+        const hostUserId = await redisClient.hGet(roomCode, "Host-UserId");
+        const gameStartTime = await redisClient.hGet(roomCode, "GameStartTime");
+        const values = userIds.map(userId => [userId, problemSetId, hostUserId, new Date(Number(gameStartTime)).toISOString().slice(0, 19).replace('T', ' ')]);
+        const insertJoinHistoryQuery = 'INSERT INTO join_history (user_id, join_room_problems_set, join_room_hosted_by, join_room_game_start_datetime) VALUES ?';
+        await db.query(insertJoinHistoryQuery, [values]);
+        res.status(200).json({message: "Record Inserted"});
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({message: "Internal Server Error"});
+    }
+})
+
+// Only need insert score and answer history
+// Use meta data to identify the rows, problemSet ID + game start time
+router.post("/insertAnswerHistoryScore", async (req, res) => {
+    const {roomCode, sessionId} = req.body;
+    
+
 })
 
 

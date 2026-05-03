@@ -20,6 +20,7 @@ module.exports = function(io, redisClient) {
                     redisClient.hDel(`${roomCode}-Session-Score`, playerSession),
                     redisClient.hDel(`${playerSession}-Answer-History`, playerSession),
                     redisClient.hDel(`${roomCode}-Last-Problem-Answered`, playerSession),
+                    redisClient.hDel(`${roomCode}-Session-UserId`, playerSession),
                 ]);
             io.to(targetSocketId).emit("kick-player-message", `${username} is kicked by host`);
             const player_list_names = await constructPlayerList(roomCode, roomSocketId);
@@ -64,7 +65,6 @@ module.exports = function(io, redisClient) {
             await redisClient.hIncrBy(`${roomCode}-Session-Score`, sessionId, returnScore);
             await redisClient.hSet(`${sessionId}-${roomCode}-Answer-History`, currProblem.problem_id, clientAnswer);
             await redisClient.hSet(`${roomCode}-Session-Last-Problem-Answered`, sessionId, currProblem.problem_id);
-            // Remember to remove this once the room ended, because there is no TTL set for this entry
             io.to(socket_id).emit("check-answer-response", {
                 correct: isCorrectAnswer,
                 score: returnScore,

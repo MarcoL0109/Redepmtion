@@ -82,7 +82,7 @@ function GamePage() {
                 "Content-Type": "application/json"
             },
             credentials: "include",
-            body: JSON.stringify({room_code: roomId, socket_id: socket_id, session_id: session})
+            body: JSON.stringify({room_code: roomId, socket_id: socket_id, session_id: session, user_id: userId})
         })
 
         if (store_socket_id_redis.status === 500) {
@@ -214,6 +214,7 @@ function GamePage() {
                         roomCode: roomId,
                         sessionId: session,
                         playerName: username,
+                        userId: userId,
                         isLocked: "1",
                         checkStream: true,
                         problemSetId: problem_set_id,

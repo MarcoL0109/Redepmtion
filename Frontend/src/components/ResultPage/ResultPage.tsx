@@ -58,7 +58,6 @@ function ResultPage() {
 
             socket.on("connect", async () => {
                 const sessionId = await getSessionID();
-                console.log("Socket connected, emitting request...");
                 if (userId !== '0') {
                     socket.emit("request-player-answer-history", { sessionId: sessionId, roomCode: roomId });
                 }
